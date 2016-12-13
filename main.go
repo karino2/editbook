@@ -102,6 +102,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	editorType := "plain"
+	// editorType := "jhtmlarea"
 
 	log.Println("start main")
 

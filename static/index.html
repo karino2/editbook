@@ -4,7 +4,10 @@
 <script type="text/javascript">
 $(function() {
     $("#saveButton").click(function() {
-        alert("hello world");
+        saveFile($("#pathSpan").text(),
+                $("#editorTextArea").val()
+                );
+
     });
 
     openWs();
@@ -43,6 +46,11 @@ function openWs() {
 
 function onHeartBeat(ws) {
     ws.send("1");
+}
+
+function saveFile(path, data) {
+    $.post("/save/", {path: path, data:data})
+     .done(function(){alert("saved")});
 }
 
 function openFile(path, data) {

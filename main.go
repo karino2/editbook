@@ -34,13 +34,13 @@ func saveFile(path string, body string) error {
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
-	body := r.FormValue("body")
+	body := r.FormValue("data")
 	err := saveFile(path, body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/static/empty.thml", http.StatusFound)
+	http.Redirect(w, r, "/static/empty.html", http.StatusFound)
 }
 
 var upgrader = websocket.Upgrader{

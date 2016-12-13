@@ -20,3 +20,8 @@ $ ./main &
 $ cd cmds
 $ ./ebclient "open main.go"
 ```
+
+# (partially) supported editor
+
+- plain
+- jhtmlarea http://jhtmlarea.codeplex.com/

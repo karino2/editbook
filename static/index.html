@@ -1,0 +1,67 @@
+<html>
+<head>
+<script src="jquery-3.1.1.min.js"></script>
+<script type="text/javascript">
+$(function() {
+    $("#saveButton").click(function() {
+        alert("hello world");
+    });
+
+    openWs();
+
+});
+
+function openWs() {
+    // var url = (httpsEnabled ? 'wss://' : 'ws://') + window.location.host + window.location.pathname + 'ws';
+    var url ='ws://' + window.location.host + '/ws';
+
+    var ws = new WebSocket(url, ["editbook"]);
+    ws.onopen = function(event) {
+        heartBeat = setInterval(onHeartBeat, 15*1000, ws);
+
+        // new editor here
+    };
+
+    ws.onmessage = function(event) {
+        data = event.data.slice(1);
+        switch(event.data[0]) {
+        case '0':
+            opcmd = JSON.parse(data);
+            openFile(opcmd.Path, opcmd.Data)
+            break;
+        case '1':
+            // pong
+            break;
+        }
+    };
+
+    ws.onclose = function(event) {
+        onDisconnect();
+        clearInterval(heartBeat);
+    };
+}
+
+function onHeartBeat(ws) {
+    ws.send("1");
+}
+
+function openFile(path, data) {
+    $("#pathSpan").text(path)
+    $("#editorTextArea").val(data)
+    console.log("open:" + path)
+}
+
+function onDisconnect() {
+    alert("disconnect!");
+}
+</script>
+</head>
+<body>
+
+<button type="button" id="saveButton">Save</button><br>
+path: <span id="pathSpan"></span><br>
+<textarea id="editorTextArea" cols="100" rows="40">
+This is the test area.
+</textarea>
+</body>
+</html>

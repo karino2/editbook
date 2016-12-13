@@ -70,7 +70,6 @@ func openFileToClient(conn *websocket.Conn, path string) error {
 }
 
 func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
-	log.Println("deb3")
 	exit := make(chan bool, 2)
 
 	// should handle disconnect someway.
@@ -79,7 +78,6 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 
 		cmd := <-cmdsch
 		arg := <-cmdsch
-		log.Println("deb4")
 		switch cmd {
 		case "open":
 			openFileToClient(conn, arg)
@@ -88,30 +86,31 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("wsHandler called")
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
 
-	log.Println("deb1")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("Failed to upgrade connection: " + err.Error())
 		return
 	}
-	log.Println("deb2")
 
 	go wsSendReceive(cmdsch, conn)
 }
 
 func main() {
+	editorType := "plain"
+
 	log.Println("start main")
 
 	fileServer := http.StripPrefix("/static/", http.FileServer(http.Dir("static")))
+	editorServer := http.StripPrefix("/editor/", http.FileServer(http.Dir("editors/"+editorType)))
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/static/", fileServer)
+	http.Handle("/editor/", editorServer)
 	go http.ListenAndServe(":5123", nil)
 	ln, err := net.Listen("tcp", ":5124")
 	if err != nil {

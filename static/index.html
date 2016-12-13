@@ -2,14 +2,15 @@
 <head>
 <script src="jquery-3.1.1.min.js"></script>
 <script type="text/javascript">
+function EditBook_SaveFile(path, data, ondone) {
+    $.post("/save/", {path: path, data:data})
+     .done(ondone);
+}
+
+</script>
+<script src="/editor/editbook_main.js"></script>
+<script type="text/javascript">
 $(function() {
-    $("#saveButton").click(function() {
-        saveFile($("#pathSpan").text(),
-                $("#editorTextArea").val()
-                );
-
-    });
-
     openWs();
 
 });
@@ -22,7 +23,8 @@ function openWs() {
     ws.onopen = function(event) {
         heartBeat = setInterval(onHeartBeat, 15*1000, ws);
 
-        // new editor here
+        g_editor = EditBook_NewEditor($("#editorPanel"), ws)
+        g_editor.init();
     };
 
     ws.onmessage = function(event) {
@@ -48,15 +50,10 @@ function onHeartBeat(ws) {
     ws.send("1");
 }
 
-function saveFile(path, data) {
-    $.post("/save/", {path: path, data:data})
-     .done(function(){alert("saved")});
-}
 
 function openFile(path, data) {
-    $("#pathSpan").text(path)
-    $("#editorTextArea").val(data)
-    console.log("open:" + path)
+    console.log("open called", path);
+    g_editor.open(path, data);
 }
 
 function onDisconnect() {
@@ -66,10 +63,15 @@ function onDisconnect() {
 </head>
 <body>
 
+<div id="editorPanel"></div>
+
+<!--
 <button type="button" id="saveButton">Save</button><br>
 path: <span id="pathSpan"></span><br>
 <textarea id="editorTextArea" cols="100" rows="40">
 This is the test area.
 </textarea>
+-->
+
 </body>
 </html>

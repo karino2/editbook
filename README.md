@@ -16,7 +16,7 @@ $ go build ebclient
 ```
 $ cd editbook
 $ ./main &
-# open browser here with http://localhost:5123
+# open browser here with http://localhost:5123/static/
 $ cd cmds
 $ ./ebclient "open main.go"
 ```

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/kardianos/osext"
 )
 
 var cmdsch = make(chan string)
@@ -117,8 +118,10 @@ func main() {
 
 	log.Println("start main")
 
-	fileServer := http.StripPrefix("/static/", http.FileServer(http.Dir("static")))
-	editorServer := http.StripPrefix("/editor/", http.FileServer(http.Dir("editors/"+editorType)))
+	modulepath, _ := osext.ExecutableFolder()
+
+	fileServer := http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(modulepath, "static"))))
+	editorServer := http.StripPrefix("/editor/", http.FileServer(http.Dir(filepath.Join(modulepath, "editors/"+editorType))))
 	http.HandleFunc("/save/", saveHandler)
 	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/static/", fileServer)

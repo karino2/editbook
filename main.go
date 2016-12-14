@@ -162,8 +162,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serverMain(port string) {
-	editorType := "plain"
+	// editorType := "plain"
 	// editorType := "jhtmlarea"
+	editorType := "ace"
 
 	log.Println("start main")
 

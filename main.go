@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -29,7 +31,7 @@ func handleCommandConnection(conn net.Conn) {
 
 func saveFile(path string, body string) error {
 	bbody := []byte(body)
-	return ioutil.WriteFile(path, bbody, 0600)
+	return ioutil.WriteFile(toTargetPath(path), bbody, 0600)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +59,16 @@ func sendData(conn *websocket.Conn, data []byte) error {
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
+func toTargetPath(name string) string {
+	cwd, _ := os.Getwd()
+	return filepath.Join(cwd, filepath.FromSlash(path.Clean("/"+name)))
+}
+
 func openFileToClient(conn *websocket.Conn, path string) error {
-	tbody, _ := ioutil.ReadFile(path)
+
+	targetPath := toTargetPath(path)
+	log.Println(targetPath)
+	tbody, _ := ioutil.ReadFile(targetPath)
 
 	type OpenCmdJSON struct {
 		Path, Data string

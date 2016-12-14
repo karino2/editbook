@@ -25,8 +25,7 @@ func handleCommandConnection(conn net.Conn) {
 
 	cmd := "open"
 	fmt.Println("cmd:", cmd, " arg:", path)
-	cmdsch <- cmd
-	cmdsch <- path
+	cmdsch <- cmd + " " + path
 }
 
 func saveFile(path string, body string) error {
@@ -80,24 +79,73 @@ func openFileToClient(conn *websocket.Conn, path string) error {
 }
 
 func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
-	exit := make(chan bool, 2)
+	disconn := make(chan bool, 2)
 
-	// should handle disconnect someway.
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("on close called")
+		disconn <- true
+		return nil
+	})
+
 	go func() {
-		defer func() { exit <- true }()
+		for {
+			select {
+			case cmdarg := <-cmdsch:
+				arr := strings.SplitN(cmdarg, " ", 2)
+				cmd, arg := arr[0], arr[1]
+				switch cmd {
+				case "open":
+					if err := openFileToClient(conn, arg); err != nil {
+						log.Println("err:" + err.Error())
+						return
+					}
+				}
+			case <-disconn:
+				log.Println("disconn")
+				return
+			}
+
+		}
+	}()
+
+	go func() {
+		defer func() { disconn <- true }()
+
+		// receive
+		const (
+			ping = '1'
+		)
+		// sendback
+		const (
+			pong = '1'
+		)
 
 		for {
-			cmd := <-cmdsch
-			arg := <-cmdsch
-			switch cmd {
-			case "open":
-				openFileToClient(conn, arg)
+			_, data, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("err2:" + err.Error())
+				return
+			}
+			if len(data) == 0 {
+				log.Println("Invalid message")
+				return
+			}
+
+			switch data[0] {
+			case ping:
+				if err := sendData(conn, []byte{pong}); err != nil {
+					log.Println("pong err:" + err.Error())
+					return
+				}
 			}
 		}
 	}()
+
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("wsHandler")
+
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return

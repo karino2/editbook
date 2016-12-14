@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/codegangsta/cli"
 	"github.com/gorilla/websocket"
 	"github.com/kardianos/osext"
 )
@@ -160,7 +161,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	go wsSendReceive(cmdsch, conn)
 }
 
-func main() {
+func serverMain(port string) {
 	editorType := "plain"
 	// editorType := "jhtmlarea"
 
@@ -174,7 +175,7 @@ func main() {
 	http.HandleFunc("/ws", wsHandler)
 	http.Handle("/static/", fileServer)
 	http.Handle("/editor/", editorServer)
-	go http.ListenAndServe(":5123", nil)
+	go http.ListenAndServe(":"+port, nil)
 	ln, err := net.Listen("tcp", ":5124")
 	if err != nil {
 		fmt.Printf("Can't open command socket %s\n", err)
@@ -186,4 +187,49 @@ func main() {
 
 	}
 
+}
+
+func clientMain(path string) {
+	conn, err := net.Dial("tcp", "127.0.0.1:5124")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	cmd := path
+	fmt.Println("client path:", cmd)
+	fmt.Fprintf(conn, cmd+"\n")
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "editbook"
+	app.Usage = "Tiny text editor server."
+
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "port, p",
+			Value: "5123",
+			Usage: "Specify port number of outer web connection.",
+		},
+		cli.StringFlag{
+			Name:  "client",
+			Value: "",
+			Usage: "Run as client mode and open `PATH` file relative to server execution folder.",
+		},
+	}
+
+	app.Action = func(c *cli.Context) error {
+		clientpath := c.String("client")
+
+		if clientpath == "" {
+			port := c.String("port")
+			serverMain(port)
+		} else {
+			clientMain(clientpath)
+		}
+
+		return nil
+	}
+
+	app.Run(os.Args)
 }

@@ -7,8 +7,6 @@ EditBook is micro http server and web based editor.
 ```
 $ cd editbook
 $ go build main.go
-$ cd cmds
-$ go build ebclient
 ```
 
 # how to test
@@ -17,8 +15,7 @@ $ go build ebclient
 $ cd editbook
 $ ./main &
 # open browser here with http://localhost:5123/static/
-$ cd cmds
-$ ./ebclient README.md
+$ ./main --client /README.md
 ```
 
 # (partially) supported editor

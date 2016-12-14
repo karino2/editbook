@@ -76,11 +76,13 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 	go func() {
 		defer func() { exit <- true }()
 
-		cmd := <-cmdsch
-		arg := <-cmdsch
-		switch cmd {
-		case "open":
-			openFileToClient(conn, arg)
+		for {
+			cmd := <-cmdsch
+			arg := <-cmdsch
+			switch cmd {
+			case "open":
+				openFileToClient(conn, arg)
+			}
 		}
 	}()
 }

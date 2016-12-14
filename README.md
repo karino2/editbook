@@ -21,4 +21,4 @@ $ ./main --client /README.md
 # (partially) supported editor
 
 - plain
-- jhtmlarea http://jhtmlarea.codeplex.com/
+- ace https://ace.c9.io/#nav=about

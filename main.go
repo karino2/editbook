@@ -20,13 +20,12 @@ var cmdsch = make(chan string)
 
 func handleCommandConnection(conn net.Conn) {
 	messageWithLF, _ := bufio.NewReader(conn).ReadString('\n')
-	message := strings.TrimSpace(messageWithLF)
-	cmds := strings.SplitN(message, " ", 2)
-	cmd := cmds[0]
-	arg := cmds[1]
-	fmt.Println("cmd:", cmd, " arg:", arg)
+	path := strings.TrimSpace(messageWithLF)
+
+	cmd := "open"
+	fmt.Println("cmd:", cmd, " arg:", path)
 	cmdsch <- cmd
-	cmdsch <- arg
+	cmdsch <- path
 }
 
 func saveFile(path string, body string) error {

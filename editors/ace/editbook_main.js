@@ -10,7 +10,8 @@ function open(path, data) {
     console.log("editor.open called", path);
     
     $("#pathSpan").text(path)
-    g_ace.setValue(data)
+    g_ace.setValue(data, -1)
+
     console.log("open:" + path)
 }
 
@@ -39,7 +40,8 @@ function initEditor(div) {
     {
         ace.config.set("basePath", "/editor/src-min-noconflict");
         g_ace = ace.edit("aceDiv");
-        g_ace.setTheme("ace/theme/monokai")
+        g_ace.setTheme("ace/theme/twilight")
+        // g_ace.getSession().setMode("ace/mode/matlab")
     });
 
 

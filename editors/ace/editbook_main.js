@@ -37,9 +37,9 @@ function initEditor(div) {
     // refer this folder as /editor/
     $.getScript("/editor/src-min-noconflict/ace.js", function(d, t, xhr)
     {
+        ace.config.set("basePath", "/editor/src-min-noconflict");
         g_ace = ace.edit("aceDiv");
-        // this line cause /static/theme-monokai.js, of-couse not exist.
-        // g_ace.setTheme("ace/theme/monokai")
+        g_ace.setTheme("ace/theme/monokai")
     });
 
 

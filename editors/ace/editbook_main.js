@@ -43,7 +43,7 @@ function initEditor(div) {
     builder.push(
 '<button type="button" id="saveButton">Save</button><br>',
 'path: <span id="pathSpan"></span><br>',
-'<div id="aceDiv" style="position:absolute;top:50;left:0;bottom:50;right:0">',
+'<div id="aceDiv" style="position:absolute;top:50;left:0;bottom:0;right:0">',
 'This is the test area.',
 '</div>'
     );

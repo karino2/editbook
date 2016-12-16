@@ -30,7 +30,7 @@ function initEditor(div) {
     $("#saveButton").click(function() {
         EditBook_SaveFile($("#pathSpan").text(),
             g_ace.getValue(),
-            function(){alert("saved")}
+            function(){toastr.info("saved"); }
         );
     });
 

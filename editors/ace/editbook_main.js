@@ -61,7 +61,7 @@ function initEditor(div) {
     {
         ace.config.set("basePath", "/editor/src-min-noconflict");
         g_ace = ace.edit("aceDiv");
-        g_ace.setTheme("ace/theme/twilight")
+        g_ace.setTheme("ace/theme/tomorrow_night_bright")
     });
 
 

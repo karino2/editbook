@@ -6,14 +6,35 @@ function EditBook_NewEditor(div, ws) {
     }
 }
 
+var g_extModeMap = {
+    "m": "matlab",
+};
+
+
+function getExt(str) {
+    var dot = str.lastIndexOf(".");
+
+    if(dot == -1)
+        return "";
+    return str.substring(dot+1);
+}
+
 function open(path, data) {
     console.log("editor.open called", path);
     
     $("#pathSpan").text(path)
     g_ace.setValue(data, -1)
 
+    var ext = getExt(path);
+    if(ext in g_extModeMap) {
+         g_ace.getSession().setMode("ace/mode/" + g_extModeMap[ext]);
+    } else {
+         g_ace.getSession().setMode("ace/mode/text");
+    }
+
     console.log("open:" + path)
 }
+
 
 
 
@@ -41,7 +62,6 @@ function initEditor(div) {
         ace.config.set("basePath", "/editor/src-min-noconflict");
         g_ace = ace.edit("aceDiv");
         g_ace.setTheme("ace/theme/twilight")
-        // g_ace.getSession().setMode("ace/mode/matlab")
     });
 
 

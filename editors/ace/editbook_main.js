@@ -6,7 +6,7 @@ function EditBook_NewEditor(div, ws) {
     }
 }
 
-var g_extModeMap = {
+var ace_extModeMap = {
     "m": "matlab",
 };
 
@@ -24,7 +24,7 @@ function open(path, data) {
     
     $("#pathSpan").text(path)
 
-    var editr = g_current;
+    var editr = ace_current;
 
     var session = new EditSession("")
     editr.setSession(session);
@@ -32,8 +32,8 @@ function open(path, data) {
     editr.path = path;
 
     var ext = getExt(path);
-    if(ext in g_extModeMap) {
-         editr.getSession().setMode("ace/mode/" + g_extModeMap[ext]);
+    if(ext in ace_extModeMap) {
+         editr.getSession().setMode("ace/mode/" + ace_extModeMap[ext]);
     } else {
          editr.getSession().setMode("ace/mode/text");
     }
@@ -43,7 +43,7 @@ function open(path, data) {
 
 
 
-g_offsetTop = 50;
+ace_offsetTop = 50;
 
 function initEditor(div) {
     var builder = [];
@@ -55,11 +55,11 @@ function initEditor(div) {
 '</div>'
     );
     div.html(builder.join(""));
-    g_container = div;
+    ace_container = div;
 
     $("#saveButton").click(function() {
         EditBook_SaveFile($("#pathSpan").text(),
-            g_ace.getValue(),
+            ace_editor.getValue(),
             function(){toastr.info("saved"); }
         );
     });
@@ -76,32 +76,34 @@ function initEditor(div) {
         if(this.checked) {
             // split
             toastr.info("splited");
-            g_container.append(g_subeditor.container);
+            ace_container.append(ace_subeditor.container);
 
-            var width = g_ace.container.clientWidth;
-            var height = g_ace.container.clientHeight;
+            var width = ace_editor.container.clientWidth;
+            var height = ace_editor.container.clientHeight;
 
             var editorHeight = height / 2;
 
-            resize(g_ace, g_offsetTop, width, editorHeight);
-            resize(g_subeditor, g_offsetTop+ editorHeight, width, editorHeight);
+            resize(ace_editor, ace_offsetTop, width, editorHeight);
+            resize(ace_subeditor, ace_offsetTop+ editorHeight, width, editorHeight);
 
 
-            var session = g_ace.session;
+            var session = ace_editor.session;
             session = cloneSession(session);
-            g_subeditor.setSession(session);
+            ace_subeditor.setSession(session);
 
-            g_subeditor.path = g_ace.path;
+            ace_subeditor.path = ace_editor.path;
 
         } else {
             // unsplit
             toastr.info("unsplited")
 
-            var width = g_ace.container.clientWidth;
-            var height = g_ace.container.clientHeight;
+            var width = ace_editor.container.clientWidth;
+            var height = ace_editor.container.clientHeight;
+            ace_editor.setSession(ace_current.getSession());
+            ace_current = ace_editor;
 
-            $(g_subeditor.container).remove();
-            resize(g_ace, g_offsetTop, width, height*2);
+            $(ace_subeditor.container).remove();
+            resize(ace_editor, ace_offsetTop, width, height*2);
         }
     });
 
@@ -115,26 +117,26 @@ function initEditor(div) {
         UndoManager = ace.require("ace/undomanager").UndoManager;
         Editor = ace.require("ace/editor").Editor
         Renderer = ace.require("ace/virtual_renderer").VirtualRenderer;
-        g_lang = ace.require("ace/lib/lang");
+        ace_lang = ace.require("ace/lib/lang");
 
-        g_ace = ace.edit("aceDiv");
-        g_current = g_ace;
-        g_theme = "ace/theme/tomorrow_night_bright";
-        g_ace.setTheme(g_theme);
-        g_ace.path = "";
-        g_ace.on("focus", function() {
-            g_current = g_ace;
-            $("#pathSpan").text(g_current.path);
+        ace_editor = ace.edit("aceDiv");
+        ace_current = ace_editor;
+        ace_theme = "ace/theme/tomorrow_night_bright";
+        ace_editor.setTheme(ace_theme);
+        ace_editor.path = "";
+        ace_editor.on("focus", function() {
+            ace_current = ace_editor;
+            $("#pathSpan").text(ace_current.path);
         });
 
         var el = document.createElement("div");
         el.style.cssText = "position: absolute; top:0px; bottom:0px";
-        // g_container.appendChild(el);
+        // ace_container.appendChild(el);
         // var session = new EditSession("");
-        g_subeditor = new Editor(new Renderer(el, g_theme));
-        g_subeditor.on("focus", function() {
-            g_current = g_subeditor;
-            $("#pathSpan").text(g_current.path);
+        ace_subeditor = new Editor(new Renderer(el, ace_theme));
+        ace_subeditor.on("focus", function() {
+            ace_current = ace_subeditor;
+            $("#pathSpan").text(ace_current.path);
         })
     });
 
@@ -189,7 +191,7 @@ function cloneSession(session) {
         var undoManagerProxy = new UndoManagerProxy(undoManager, s);
         s.setUndoManager(undoManagerProxy);
     }
-    s.$informUndoManager = g_lang.delayedCall(function() { s.$deltas = []; });
+    s.$informUndoManager = ace_lang.delayedCall(function() { s.$deltas = []; });
     s.setTabSize(session.getTabSize());
     s.setUseSoftTabs(session.getUseSoftTabs());
     s.setOverwrite(session.getOverwrite());

@@ -75,7 +75,6 @@ function initEditor(div) {
     $("#split").change(function() {
         if(this.checked) {
             // split
-            toastr.info("splited");
             ace_container.append(ace_subeditor.container);
 
             var width = ace_editor.container.clientWidth;
@@ -95,7 +94,6 @@ function initEditor(div) {
 
         } else {
             // unsplit
-            toastr.info("unsplited")
 
             var width = ace_editor.container.clientWidth;
             var height = ace_editor.container.clientHeight;

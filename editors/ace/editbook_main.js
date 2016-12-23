@@ -59,7 +59,7 @@ function initEditor(div) {
 
     $("#saveButton").click(function() {
         EditBook_SaveFile($("#pathSpan").text(),
-            ace_editor.getValue(),
+            ace_current.getValue(),
             function(){toastr.info("saved"); }
         );
     });

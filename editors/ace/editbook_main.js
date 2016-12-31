@@ -8,6 +8,11 @@ function EditBook_NewEditor(div, ws) {
 
 var ace_extModeMap = {
     "m": "matlab",
+    "java": "java",
+    "c": "c_cpp",
+    "cpp": "c_cpp",
+    "cc": "c_cpp",
+    "h" : "c_cpp"
 };
 
 

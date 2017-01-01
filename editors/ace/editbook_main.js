@@ -132,6 +132,8 @@ function initEditor(div) {
             $("#pathSpan").text(ace_current.path);
         });
 
+        ace_editor.getSession(new UndoManager());
+
         var el = document.createElement("div");
         el.style.cssText = "position: absolute; top:0px; bottom:0px";
         // ace_container.appendChild(el);

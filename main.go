@@ -161,10 +161,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	go wsSendReceive(cmdsch, conn)
 }
 
-func serverMain(port string) {
-	// editorType := "plain"
-	editorType := "ace"
-
+func serverMain(port, editorType string) {
 	log.Println("start main")
 
 	modulepath, _ := osext.ExecutableFolder()
@@ -216,6 +213,11 @@ func main() {
 			Value: "",
 			Usage: "Run as client mode and open `PATH` file relative to server execution folder.",
 		},
+		cli.StringFlag{
+			Name: "editor",
+			Value: "ace",
+			Usage: "Specify the name of editor types.",
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
@@ -223,7 +225,8 @@ func main() {
 
 		if clientpath == "" {
 			port := c.String("port")
-			serverMain(port)
+			editorType := c.String("editor")
+			serverMain(port, editorType)
 		} else {
 			clientMain(clientpath)
 		}

@@ -33,8 +33,10 @@ function open(path, data) {
 
     var session = new EditSession("")
     editr.setSession(session);
-    editr.setValue(data, -1)
+    editr.setValue(data, -1);
     editr.path = path;
+    editr.getSession().setUndoManager(new UndoManager());
+
 
     var ext = getExt(path);
     if(ext in ace_extModeMap) {
@@ -131,8 +133,6 @@ function initEditor(div) {
             ace_current = ace_editor;
             $("#pathSpan").text(ace_current.path);
         });
-
-        ace_editor.getSession(new UndoManager());
 
         var el = document.createElement("div");
         el.style.cssText = "position: absolute; top:0px; bottom:0px";

@@ -11,11 +11,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/gorilla/websocket"
-	"github.com/kardianos/osext"
 )
 
 var cmdsch = make(chan string)
@@ -164,7 +164,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 func serverMain(port, editorType string) {
 	log.Println("start main")
 
-	modulepath, _ := osext.ExecutableFolder()
+	_, sourceFileName, _, _ := runtime.Caller(0)
+	modulepath := filepath.Dir(sourceFileName)
 
 	fileServer := http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(modulepath, "static"))))
 	editorServer := http.StripPrefix("/editor/", http.FileServer(http.Dir(filepath.Join(modulepath, "editors/"+editorType))))
@@ -214,7 +215,7 @@ func main() {
 			Usage: "Run as client mode and open `PATH` file relative to server execution folder.",
 		},
 		cli.StringFlag{
-			Name: "editor",
+			Name:  "editor",
 			Value: "ace",
 			Usage: "Specify the name of editor types.",
 		},

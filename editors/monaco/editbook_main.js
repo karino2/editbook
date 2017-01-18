@@ -159,6 +159,7 @@ EditBookMonacoEditor.prototype.init = function() {
         require.config({paths: {vs: "/editor/vs"}});
         require(['vs/editor/editor.main'], function() {
             self.editor = monaco.editor.create(self.elem);
+            self.editor.updateOptions({ 'theme' : 'vs-dark' });
             self.editor.onDidFocusEditor(() => { NotifyFocusChanged(self); });
         });
     }

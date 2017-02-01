@@ -1,3 +1,4 @@
+'use strict';
 
 function EditBook_NewEditor(div, ws) {
     return {

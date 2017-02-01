@@ -4,6 +4,8 @@
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
 <script src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script type="text/javascript">
+'use strict';
+
 function EditBook_SaveFile(path, data, ondone) {
     $.post("/save/", {path: path, data:data})
      .done(ondone);
@@ -12,6 +14,8 @@ function EditBook_SaveFile(path, data, ondone) {
 </script>
 <script src="/editor/editbook_main.js"></script>
 <script type="text/javascript">
+'use strict';
+
 $(function() {
     openWs();
 });

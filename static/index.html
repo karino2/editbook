@@ -20,23 +20,26 @@ $(function() {
     openWs();
 });
 
+var g_heartBeat;
+var g_editor;
+
 function openWs() {
     // var url = (httpsEnabled ? 'wss://' : 'ws://') + window.location.host + window.location.pathname + 'ws';
     var url ='ws://' + window.location.host + '/ws';
 
     var ws = new WebSocket(url, ["editbook"]);
     ws.onopen = function(event) {
-        heartBeat = setInterval(onHeartBeat, 15*1000, ws);
+        g_heartBeat = setInterval(onHeartBeat, 15*1000, ws);
 
         g_editor = EditBook_NewEditor($("#editorPanel"), ws)
         g_editor.init();
     };
 
     ws.onmessage = function(event) {
-        data = event.data.slice(1);
+        var data = event.data.slice(1);
         switch(event.data[0]) {
         case '0':
-            opcmd = JSON.parse(data);
+            var opcmd = JSON.parse(data);
             openFile(opcmd.Path, opcmd.Data)
             break;
         case '1':

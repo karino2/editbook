@@ -1,5 +1,8 @@
 'use strict';
 
+var g_current;
+var g_menu;
+
 function EditBook_NewEditor(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);

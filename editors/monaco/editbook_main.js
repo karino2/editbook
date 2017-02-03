@@ -39,7 +39,9 @@ function EditBook_NewEditor(elem, ws) {
 
     return {
         init: ()=>{},
-        open: (path, data) => { menu.setPath(path); g_current.open(path, data);  }
+        open: (path, data, abspath) => {
+            menu.setPath(path); g_current.open(abspath, data);
+        }
     };
 }
 

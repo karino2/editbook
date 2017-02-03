@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -30,8 +29,12 @@ func handleCommandConnection(conn net.Conn) {
 }
 
 func saveFile(path string, body string) error {
+	targetPath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
 	bbody := []byte(body)
-	return ioutil.WriteFile(toTargetPath(path), bbody, 0600)
+	return ioutil.WriteFile(targetPath, bbody, 0600)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,22 +62,22 @@ func sendData(conn *websocket.Conn, data []byte) error {
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func toTargetPath(name string) string {
-	cwd, _ := os.Getwd()
-	return filepath.Join(cwd, filepath.FromSlash(path.Clean("/"+name)))
-}
-
 func openFileToClient(conn *websocket.Conn, path string) error {
-
-	targetPath := toTargetPath(path)
-	log.Println(targetPath)
+	targetPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Println(targetPath)
+		return err
+	}
 	tbody, _ := ioutil.ReadFile(targetPath)
 
-	type OpenCmdJSON struct {
-		Path, Data string
+	jsondat, err := json.Marshal(map[string]string{
+		"path": path,
+		"abspath": targetPath,
+		"data": string(tbody),
+	})
+	if err != nil {
+		return err
 	}
-
-	jsondat, _ := json.Marshal(OpenCmdJSON{path, string(tbody)})
 
 	return sendData(conn, append([]byte{clientOPEN}, []byte(jsondat)...))
 }
@@ -98,7 +101,6 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 				case "open":
 					if err := openFileToClient(conn, arg); err != nil {
 						log.Println("err:" + err.Error())
-						return
 					}
 				}
 			case <-disconn:
@@ -141,7 +143,6 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 			}
 		}
 	}()
-
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {

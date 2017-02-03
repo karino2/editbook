@@ -10,8 +10,15 @@ function EditBook_NewEditor(elem, ws) {
     var main_editor =  new EditBookMonacoEditor(menu.main_div);
     var sub_editor = new EditBookMonacoEditor(menu.sub_div);
 
-    main_editor.init();
-    sub_editor.init();
+    var onInit = InitializeModule();
+    onInit.push(() => { main_editor.init(); });
+    onInit.push(() => { sub_editor.init(); });
+    onInit.push((_, languageservice) => {
+        InitializeLanguageServices(ws, languageservice, function(services) {
+            main_editor.registerLangServices(services);
+            sub_editor.registerLangServices(services);
+        });
+    });
 
     g_current = main_editor;
     g_menu = menu;
@@ -34,13 +41,60 @@ function EditBook_NewEditor(elem, ws) {
 
             // main_editor.restoreViewState(state);
         }
-        main_editor.editor.layout(); 
+        main_editor.editor.layout();
     };
 
     return {
         init: ()=>{},
-        open: (path, data) => { menu.setPath(path); g_current.open(path, data);  }
+        open: (path, data, abspath) => {
+            menu.setPath(path);
+            g_current.open(abspath, data);
+        }
     };
+}
+
+function InitializeModule() {
+    function onAmdEnabled() {
+        require.config({paths:
+            {vs: '/editor/node_modules/monaco-editor/min/vs', languageservice: '/editor/languageservice'}});
+        require(['vs/editor/editor.main', 'languageservice'], function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            onInit.forEach(function(callback) {
+                callback.apply(null, args);
+            });
+        });
+    }
+    if (typeof require !== 'undefined') {
+        console.warn('initialized twice?');
+        return;
+    }
+    var onInit = [];
+    var loader = document.createElement('script');
+    loader.src = '/editor/vs/loader.js';
+    loader.type = 'text/javascript';
+    loader.addEventListener('load', onAmdEnabled);
+    document.head.appendChild(loader);
+    return onInit;
+}
+
+function InitializeLanguageServices(ws, languageservice, callback) {
+    function onLanguageServiceList(ev) {
+        var data = ev.data;
+        if (data[0] !== '3') {
+            return;
+        }
+        var handler = new languageservice.WsHandler(ws);
+        var services = {};
+        data.slice(1).split(',').forEach(function(lang) {
+            services[lang] =
+                languageservice.registerLanguageService(lang, handler);
+        });
+        ws.removeEventListener('message', onLanguageServiceList);
+        callback(services);
+    }
+    ws.addEventListener('message', onLanguageServiceList);
+    // requesting language list.
+    ws.send('3');
 }
 
 function NotifyFocusChanged(editor) {
@@ -128,7 +182,12 @@ function EditBookMonacoEditor(elem) {
 
     this.editor = null;
     this.path = null;
+    this._services = null;
 }
+
+EditBookMonacoEditor.prototype.registerLangServices = function(services) {
+    this._services = services;
+};
 
 EditBookMonacoEditor.prototype.open = function(path, data) {
     if (!this.editor) {
@@ -141,6 +200,19 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         // second parameter is language -- which is null for
         // auto detection.
         model = monaco.editor.createModel(data, null, uri);
+        if (this._services === null) {
+            console.warn('A file is opened before the language services are'
+                + ' fully loaded. Consider reloading & waiting a bit.');
+        } else {
+            var lang = model.getModeId();
+            if (lang in this._services) {
+                var svc = this._services[lang];
+                svc.onOpen(model);
+                model.onDidChangeContent(function(change) {
+                    svc.onChange(model, change);
+                });
+            }
+        }
     }
     this.editor.setModel(model);
     this.path = path;
@@ -154,27 +226,26 @@ EditBookMonacoEditor.prototype.save = function() {
     if (!model) {
         return;
     }
-    
-    EditBook_SaveFile(this.path, model.getValue(), function() {});
+
+    var svc = this._services[model.getModeId()];
+    if (svc) {
+        svc.willSave(model);
+    }
+    // TODO: should use willSaveWaitUntil?
+    EditBook_SaveFile(this.path, model.getValue(), () => {
+        if (svc) {
+            svc.didSave(model);
+        }
+    });
+};
+
+EditBookMonacoEditor.initializeModule = function() {
+    var onInit = [];
+
 };
 
 EditBookMonacoEditor.prototype.init = function() {
-    var self = this;
-    function onAmdEnabled() {
-        require.config({paths: {vs: "/editor/vs"}});
-        require(['vs/editor/editor.main'], function() {
-            self.editor = monaco.editor.create(self.elem);
-            self.editor.updateOptions({ 'theme' : 'vs-dark' });
-            self.editor.onDidFocusEditor(() => { NotifyFocusChanged(self); });
-        });
-    }
-    if (typeof require !== 'undefined') {
-        onAmdEnabled();
-    } else {
-        var loader = document.createElement('script');
-        loader.src = '/editor/vs/loader.js';
-        loader.type = 'text/javascript';
-        loader.addEventListener('load', onAmdEnabled);
-        document.head.appendChild(loader);
-    }
+    this.editor = monaco.editor.create(this.elem);
+    this.editor.updateOptions({ 'theme' : 'vs-dark' });
+    this.editor.onDidFocusEditor(() => { NotifyFocusChanged(this); });
 };

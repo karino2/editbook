@@ -2,6 +2,6 @@
 # yarn lockfile v1
 
 
-monaco-editor@^0.7.0:
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.7.0.tgz#db4ae9f9eeb8f419c7922c14e1dcdbfe33c925c4"
+monaco-editor@^0.8:
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.8.1.tgz#132d5607294a56f4d2b195c3451c7cf4ccaece79"

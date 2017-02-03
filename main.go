@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,16 +10,19 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/codegangsta/cli"
 	"github.com/gorilla/websocket"
+	"github.com/karino2/editbook/langservice"
 )
 
 var cmdsch = make(chan string)
+var lsConfig = map[string]langservice.Config{}
+var sendDataMutex = &sync.Mutex{}
 
 func handleCommandConnection(conn net.Conn) {
 	messageWithLF, _ := bufio.NewReader(conn).ReadString('\n')
@@ -30,8 +34,12 @@ func handleCommandConnection(conn net.Conn) {
 }
 
 func saveFile(path string, body string) error {
+	targetPath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
 	bbody := []byte(body)
-	return ioutil.WriteFile(toTargetPath(path), bbody, 0600)
+	return ioutil.WriteFile(targetPath, bbody, 0600)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,36 +64,56 @@ const (
 )
 
 func sendData(conn *websocket.Conn, data []byte) error {
+	sendDataMutex.Lock()
+	defer sendDataMutex.Unlock()
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
-func toTargetPath(name string) string {
-	cwd, _ := os.Getwd()
-	return filepath.Join(cwd, filepath.FromSlash(path.Clean("/"+name)))
-}
-
 func openFileToClient(conn *websocket.Conn, path string) error {
-
-	targetPath := toTargetPath(path)
-	log.Println(targetPath)
+	targetPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Println(targetPath)
+		return err
+	}
 	tbody, _ := ioutil.ReadFile(targetPath)
 
-	type OpenCmdJSON struct {
-		Path, Data string
+	jsondat, err := json.Marshal(map[string]string{
+		"path": path,
+		"abspath": targetPath,
+		"data": string(tbody),
+	})
+	if err != nil {
+		return err
 	}
-
-	jsondat, _ := json.Marshal(OpenCmdJSON{path, string(tbody)})
 
 	return sendData(conn, append([]byte{clientOPEN}, []byte(jsondat)...))
 }
 
 func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
+	// receive
+	const (
+		ping     = '1'
+		ls       = '2'
+		langlist = '3'
+	)
+	// sendback
+	const (
+		pong = '1'
+	)
+
 	disconn := make(chan bool, 2)
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		log.Println("on close called")
 		disconn <- true
 		return nil
+	})
+
+	langServices := langservice.NewLangServices(lsConfig, func(lang string, data []byte) error {
+		content := []byte{ls}
+		content = append(content, []byte(lang)...)
+		content = append(content, data...)
+		return sendData(conn, content)
 	})
 
 	go func() {
@@ -98,11 +126,11 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 				case "open":
 					if err := openFileToClient(conn, arg); err != nil {
 						log.Println("err:" + err.Error())
-						return
 					}
 				}
 			case <-disconn:
 				log.Println("disconn")
+				langServices.Close()
 				return
 			}
 
@@ -111,15 +139,6 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 
 	go func() {
 		defer func() { disconn <- true }()
-
-		// receive
-		const (
-			ping = '1'
-		)
-		// sendback
-		const (
-			pong = '1'
-		)
 
 		for {
 			_, data, err := conn.ReadMessage()
@@ -138,10 +157,34 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 					log.Println("pong err:" + err.Error())
 					return
 				}
+			case ls:
+				log.Printf("lang service: %s", data)
+				data = data[1:]
+				if idx := bytes.IndexAny(data, "{["); idx > 0 {
+					langName := string(data[:idx])
+					log.Printf("lang service: %s", langName)
+					svc, err := langServices.GetOrInitializeLangService(langName)
+					if err != nil {
+						log.Printf("lang service error: %v", err)
+						continue
+					}
+					data := data[idx:]
+					if svc.Initialized() {
+						svc.WriteMessage(data)
+					} else {
+						svc.Init(data)
+					}
+				}
+			case langlist:
+				log.Printf("Sending the list of langservice supported languages upon request.")
+				langs := []string{}
+				for lang, _ := range lsConfig {
+					langs = append(langs, lang)
+				}
+				sendData(conn, append([]byte{langlist}, []byte(strings.Join(langs, ","))...))
 			}
 		}
 	}()
-
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -161,11 +204,20 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	go wsSendReceive(cmdsch, conn)
 }
 
-func serverMain(port, editorType string) {
+func serverMain(port, editorType, lsConfigFile string) {
 	log.Println("start main")
 
 	_, sourceFileName, _, _ := runtime.Caller(0)
 	modulepath := filepath.Dir(sourceFileName)
+
+	if lsConfigFile != "" {
+		loadedConfig, err := langservice.LoadConfigFile(lsConfigFile)
+		if err != nil {
+			log.Printf("Failed to load the language server config file: %v", err)
+		} else {
+			lsConfig = loadedConfig
+		}
+	}
 
 	fileServer := http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(modulepath, "static"))))
 	editorServer := http.StripPrefix("/editor/", http.FileServer(http.Dir(filepath.Join(modulepath, "editors/"+editorType))))
@@ -219,6 +271,11 @@ func main() {
 			Value: "ace",
 			Usage: "Specify the name of editor types.",
 		},
+		cli.StringFlag{
+			Name:  "ls-config",
+			Value: "",
+			Usage: "specifies the filename containing JSON data to specify language servers.",
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
@@ -227,7 +284,8 @@ func main() {
 		if clientpath == "" {
 			port := c.String("port")
 			editorType := c.String("editor")
-			serverMain(port, editorType)
+			lsConfig := c.String("ls-config")
+			serverMain(port, editorType, lsConfig)
 		} else {
 			clientMain(clientpath)
 		}

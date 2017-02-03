@@ -51,7 +51,18 @@ function open(path, data) {
 
 
 
-ace_offsetTop = 50;
+var ace_offsetTop = 50;
+var ace_container;
+var ace_current;
+var ace_editor;
+var ace_subeditor;
+var ace_lang;
+var ace_theme;
+var EditSession;
+var UndoManager;
+var Editor;
+var Renderer;
+
 
 function initEditor(div) {
     var builder = [];

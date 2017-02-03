@@ -56,7 +56,7 @@ function EditBook_NewEditor(elem, ws) {
 function InitializeModule() {
     function onAmdEnabled() {
         require.config({paths:
-            {vs: '/editor/node_modules/monaco-editor/min/vs', languageservice: '/editor/languageservice'}});
+            {vs: '/editor/vs', languageservice: '/editor/languageservice'}});
         require(['vs/editor/editor.main', 'languageservice'], function() {
             var args = Array.prototype.slice.call(arguments, 0);
             onInit.forEach(function(callback) {

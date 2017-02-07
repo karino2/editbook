@@ -1,4 +1,7 @@
 # editbook
+
+[![TravisCI Build Status](https://travis-ci.org/karino2/editbook.svg?branch=master)](https://travis-ci.org/karino2/editbook)
+
 EditBook is micro http server and web based editor.
 
 

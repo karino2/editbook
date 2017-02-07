@@ -3,6 +3,10 @@
 var g_current;
 var g_menu;
 
+function NotifyModifyStatusChanged() {
+    g_menu.setEnabled(g_current.dirty);
+}
+
 function EditBook_NewEditor(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);
@@ -176,6 +180,10 @@ MonacoMenu.prototype.setPath = (path) => {
     return $("#pathSpan").text(path);
 }
 
+MonacoMenu.prototype.setEnabled = (isEnable) => {
+    $("#saveButton").prop('disabled', !isEnable);
+}
+
 function EditBookMonacoEditor(elem) {
     this.elem = elem;
 
@@ -199,6 +207,23 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         // second parameter is language -- which is null for
         // auto detection.
         model = monaco.editor.createModel(data, null, uri);
+        this.dirty = false;
+        this.savedVersionId = model.getAlternativeVersionId();
+        
+        NotifyModifyStatusChanged();
+        this.lservice = {onChange: (a, b)=>{}};
+        var cur_editor = this;
+        model.onDidChangeContent(function(change) {
+            var prev_dirty = cur_editor.dirty;
+            cur_editor.dirty = cur_editor.savedVersionId !== model.getAlternativeVersionId();
+            if(prev_dirty != cur_editor.dirty) {
+                NotifyModifyStatusChanged();
+            } 
+
+            cur_editor.lservice.onChange(model, change);
+        });
+        
+
         if (this._services === null) {
             console.warn('A file is opened before the language services are'
                 + ' fully loaded. Consider reloading & waiting a bit.');
@@ -207,14 +232,15 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
             if (lang in this._services) {
                 var svc = this._services[lang];
                 svc.onOpen(model);
-                model.onDidChangeContent(function(change) {
-                    svc.onChange(model, change);
-                });
+                this.lservice = svc;
             }
         }
     }
+
+
     this.editor.setModel(model);
     this.path = path;
+
 };
 
 EditBookMonacoEditor.prototype.save = function() {
@@ -231,7 +257,12 @@ EditBookMonacoEditor.prototype.save = function() {
         svc.willSave(model);
     }
     // TODO: should use willSaveWaitUntil?
+    var cur_editor = this;
     EditBook_SaveFile(this.path, model.getValue(), () => {
+        cur_editor.savedVersionId = model.getAlternativeVersionId();
+        cur_editor.dirty = false;
+        NotifyModifyStatusChanged();
+
         toastr.info("saved");
         if (svc) {
             svc.didSave(model);

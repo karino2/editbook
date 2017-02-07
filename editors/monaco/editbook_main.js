@@ -131,7 +131,6 @@ function MonacoMenu(holder) {
 
     $("#saveButton").click(function() {
         menu.save();
-        toastr.info("saved");
     }
     );
 
@@ -233,6 +232,7 @@ EditBookMonacoEditor.prototype.save = function() {
     }
     // TODO: should use willSaveWaitUntil?
     EditBook_SaveFile(this.path, model.getValue(), () => {
+        toastr.info("saved");
         if (svc) {
             svc.didSave(model);
         }

@@ -1,10 +1,7 @@
-set-alias editbook $env:GOPATH\src\github.com\karino2\editbook\main.exe
+set-alias editbook editbook.exe
 
 function ebclient($arg) {
-  $path = $arg
-  if($arg.StartsWith(".\")) {
-     $path = $arg.substring(2)
-  }
+	$path = Resolve-Path $arg
   editbook --client $path
 }
 

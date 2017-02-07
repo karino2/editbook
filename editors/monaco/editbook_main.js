@@ -212,15 +212,14 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         
         NotifyModifyStatusChanged();
         this.lservice = {onChange: (a, b)=>{}};
-        var cur_editor = this;
-        model.onDidChangeContent(function(change) {
-            var prev_dirty = cur_editor.dirty;
-            cur_editor.dirty = cur_editor.savedVersionId !== model.getAlternativeVersionId();
-            if(prev_dirty != cur_editor.dirty) {
+        model.onDidChangeContent((change) => {
+            var prev_dirty = this.dirty;
+            this.dirty = this.savedVersionId !== model.getAlternativeVersionId();
+            if(prev_dirty != this.dirty) {
                 NotifyModifyStatusChanged();
             } 
 
-            cur_editor.lservice.onChange(model, change);
+            this.lservice.onChange(model, change);
         });
         
 
@@ -257,10 +256,9 @@ EditBookMonacoEditor.prototype.save = function() {
         svc.willSave(model);
     }
     // TODO: should use willSaveWaitUntil?
-    var cur_editor = this;
     EditBook_SaveFile(this.path, model.getValue(), () => {
-        cur_editor.savedVersionId = model.getAlternativeVersionId();
-        cur_editor.dirty = false;
+        this.savedVersionId = model.getAlternativeVersionId();
+        this.dirty = false;
         NotifyModifyStatusChanged();
 
         toastr.info("saved");

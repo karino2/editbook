@@ -1,28 +1,20 @@
 dist: trusty
 sudo: false
-
 language: go
-
 env:
-    matrix:
-        - TEST_FOR_SERVER=true
-        - TEST_FOR_CLIENT=true
-
+  matrix:
+  - TEST_FOR_SERVER=true
+  - TEST_FOR_CLIENT=true
+  global:
+    secure: sWGdRntu3FRQyfqQe0gqUnL3TISei8y/eHiQ8MuDg1nbI9pVDv0oFzpz8I/jVxI4kcwEt4nPksSt8TgBhpSx8WBIgiWQa7jzYwHqcU5zBfr+JPEd0YrGVTsD2C3R63UBRtEyCIuMcfoLiZmpc/uW6QCh68nRyS3I6aJAuqfvDFGsROrPqBjLO3WGccG73+yPEvSiJZR3yoTZocIBZlIyKA1EnxHQV0MacuZ//+dzTk6Lje1Hfm50fB0XKgFk2VuVIenFGL2+FHMuKJ0GcQAnPugLq2r3CIzgFm44pvJqOOtPMD9bsbconIwJACdbZ2jfs5KtSedg4QVSOQc9Glf93clv0ISorqhJK2WlBq1x2YsCxhvhukz6g6M0hBvTVa44OSPgN5RvnwY7Jzg7+wHmUv4o3LK9hE3jABgEZu24KTYfdqV3SgQWP1I21gZTvfDjwWOi1e9vsbNZR+MVDrzgg32MQbDuHhowMLiCPKOQeDr3LVHJbFE5PREfVfAzhwDcy9nfaBdE8IMd8EkChbc7IkGzOjtOjVjjyVq7eBrJcTqY9VXVI0MJ8Cxjf6F3X2gMCLBImQLIjfocoxcLdzCQdg8vVvZRtt8SxoEMRCuM9L9F0gQvgAGjSdlk/ZPHiJmnCFqWZMWsU57dR8d2ITuh35eFG7Jl+5cMrPHeFi2z2tw=
 before_script:
-    # Setup Nodejs to run client-side toolchain.
-    # Parhaps we should create and run Docker container which includes binary to test this repository.
-    - nvm install 6
-    - curl -o- -L https://yarnpkg.com/install.sh | bash # install yarn pkg
-    - export PATH=$HOME/.yarn/bin:$PATH # add `yarn` to path.
-
+- nvm install 6
+- curl -o- -L https://yarnpkg.com/install.sh | bash
+- export PATH=$HOME/.yarn/bin:$PATH
 script:
-    - ./script/travis_test.sh
-
+- "./script/travis_test.sh"
 matrix:
-    allow_failures:
-        # ESLint fails currently
-        - env: TEST_FOR_CLIENT=true
-
+  allow_failures:
+  - env: TEST_FOR_CLIENT=true
 notifications:
-    email: false
-
+  email: false

@@ -246,6 +246,7 @@ EditBookMonacoEditor.initializeModule = function() {
 
 EditBookMonacoEditor.prototype.init = function() {
     this.editor = monaco.editor.create(this.elem);
-    this.editor.updateOptions({ 'theme' : 'vs-dark' });
+    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
+   this.editor.updateOptions({ 'theme' : 'vs-dark' });
     this.editor.onDidFocusEditor(() => { NotifyFocusChanged(this); });
 };

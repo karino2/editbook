@@ -13,12 +13,12 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         this._lang = lang;
         this._wsHandler = wsHandler;
         this._id = 0;
-        wsHandler.addNotificationListener((msg) => {
-            console.log(msg);
-        });
+        wsHandler.registerClient(lang, this);
         this._initialized = false;
         // Remembers all notifications before it's fully initialized.
         this._notificationQueue = [];
+
+        this._responseWaiters = {};
     }
 
     LanguageClient.prototype.init = function() {
@@ -120,12 +120,18 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         if (withId) {
             msg.id = this._id++;
         }
-        var p = this._wsHandler.send(this._lang, msg, withId);
-        if (token) {
-            token.onCancellationRequested(() => { p.cancel(); });
-        }
+        this._wsHandler.send(this._lang, msg);
         if (withId) {
-            p = p.then(function(resp) {
+            var key = msg.id;
+            var p = new Promise((r) => {
+                this._responseWaiters[key] = r;
+            }, () => {
+                delete this._responseWaiters[key];
+            });
+            if (token) {
+                token.onCancellationRequested(() => { p.cancel(); });
+            }
+            return p.then(function(resp) {
                 if (resp.error) {
                     var err = new Error(resp.error.message);
                     err.code = resp.error.code;
@@ -135,12 +141,11 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 return resp.result;
             });
         }
-        return p;
     };
 
     LanguageClient.prototype.call = function(method, params, token) {
         return this.send(method, params, token, true);
-    }
+    };
 
     LanguageClient.prototype.notify = function(method, params) {
         if (!this._initialized) {
@@ -148,7 +153,23 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             return;
         }
         return this.send(method, params, null, false);
-    }
+    };
+
+    LanguageClient.prototype._onMessage = function(msg) {
+        if ('id' in msg) {
+            var key = msg.id;
+            var waiter = this._responseWaiters[key];
+            if (!waiter) {
+                console.warn('missing response waiter for ' + key);
+                return;
+            }
+            waiter(msg);
+            delete this._responseWaiters[key];
+        } else {
+            // TODO: handle server notifications.
+            console.log(msg);
+        }
+    };
 
     LanguageClient.prototype.positionToLS = function(position) {
         return {line: position.lineNumber - 1, character: position.column - 1};
@@ -460,10 +481,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     function WsHandler(ws) {
-        this._responseWaiters = {};
         this._ws = ws;
-        this._notificationListeners = {};
-        this._idCounter = 0;
+        this._clients = {};
         ws.addEventListener('message', (ev) => {
             var data = ev.data;
             var m = data.match(/^2([a-zA-Z0-9_-]+)/);
@@ -471,56 +490,27 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 return;
             }
             var lang = m[1];
-            console.log(data);
             console.log(data.slice(m[0].length));
             var content = JSON.parse(data.slice(m[0].length));
-            if ('id' in content) {
-                var key = lang + '-' + content.id;
-                var waiter = this._responseWaiters[key];
-                if (!waiter) {
-                    return;
-                }
-                waiter(content);
-                delete this._responseWaiters[key];
-            } else {
-                var listeners = this._notificationListeners[lang];
-                (listeners || []).forEach((listener) => {
-                    listener(content);
-                });
+            var client = this._clients[lang];
+            if (!client) {
+                console.warn('client for ' + lang + ' is not found');
+                return;
             }
+            client._onMessage(content);
         });
     }
 
-    WsHandler.prototype.addNotificationListener = function(lang, listener) {
-        if (!(lang in this._notificationListeners)) {
-            this._notificationListeners[lang] = [];
+    WsHandler.prototype.registerClient = function(lang, client) {
+        if (lang in this._clients) {
+            console.warn('Client already exists! Overwriting...');
         }
-        var listeners = this._notificationListeners[lang];
-        listeners.push(listener);
-        return {
-            dispose: function() {
-                var idx = listeners.indexOf(listener);
-                if (idx < 0) {
-                    console.warn('cannot find the listener. Disposed alread?');
-                    return;
-                }
-                listeners.splice(idx, 1);
-            }
-        };
-    }
+        this._clients[lang] = client;
+    };
 
     WsHandler.prototype.send = function(lang, msg, requiresReply) {
         console.log(msg);
         this._ws.send('2' + lang + JSON.stringify(msg));
-        if (requiresReply) {
-            var id = msg.id;
-            var key = lang + '-' + id;
-            return new Promise((r) => {
-                this._responseWaiters[key] = r;
-            }, () => {
-                delete this._responseWaiters[key];
-            });
-        }
     }
     return {WsHandler: WsHandler, LanguageClient: LanguageClient, registerLanguageService: registerLanguageService};
 });

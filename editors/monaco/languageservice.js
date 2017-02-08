@@ -1,9 +1,10 @@
 define('languageservice', ['vs/editor/editor.main'], function() {
     var Promise = monaco.Promise;
 
-    function registerLanguageService(lang, wsHandler) {
-        var client = new LanguageClient(lang, wsHandler);
-        monaco.languages.onLanguage(lang, function() {
+    function registerLanguageService(params, wsHandler) {
+        var ClientClass = (params.protocol === 'TS') ? TSClient : LanguageClient;
+        var client = new ClientClass(params.lang, wsHandler);
+        monaco.languages.onLanguage(params.lang, function() {
             client.init();
         });
         return client;
@@ -480,6 +481,117 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         });
     };
 
+    function TSClient(lang, wsHandler) {
+        this._lang = lang;
+        this._wsHandler = wsHandler;
+        this._id = 0;
+        this._responseWaiters = {};
+        wsHandler.registerClient(lang, this);
+    }
+
+    TSClient.prototype.send = function(command, arguments, typ, waitResponse, token) {
+        var msg = {
+            seq: this._id++,
+            command: command,
+            arguments: arguments,
+            type: typ
+        };
+        this._wsHandler.send(this._lang, msg);
+        if (waitResponse) {
+            var key = msg.seq;
+            var p = new Promise((r) => {
+                this._responseWaiters[key] = r;
+            }, () => {
+                delete this._responseWaiters[key];
+            });
+            if (token) {
+                token.onCancellationRequested(() => { p.cancel(); });
+            }
+            return p.then(function(resp) {
+                if (!resp.success) {
+                    var err = new Error(resp.message);
+                    throw err;
+                }
+                return resp.body;
+            });
+        }
+    };
+
+    TSClient.prototype.notify = function(command, arguments, token) {
+        this.send(command, arguments, 'request', false, token);
+    };
+
+    TSClient.prototype.call = function(command, arguments, token) {
+        return this.send(command, arguments, 'request', true, token);
+    };
+
+    TSClient.prototype._onMessage = function(msg) {
+        if (msg.type === 'response') {
+            var key = msg.request_seq;
+            if (!key) {
+                console.warn('no request_seq in response', msg);
+                return;
+            }
+            var waiter = this._responseWaiters[key];
+            if (!waiter) {
+                console.warn('no waiter found', msg);
+                return;
+            }
+            delete this._responseWaiters[key];
+            waiter(msg);
+        } else {
+            // TODO: do something for events.
+            console.log(msg);
+        }
+    };
+
+    TSClient.prototype.init = function() {
+        // TODO: register.
+        monaco.languages.registerHoverProvider(this._lang, this);
+    };
+
+    TSClient.prototype.onOpen = function(model) {
+        this.notify('open', {file: model.uri.path, fileContent: model.getValue()});
+    };
+
+    TSClient.prototype.willSave = function(model) {
+        // do nothing.
+    };
+
+    TSClient.prototype.didSave = function(model) {
+        // do nothing.
+    };
+
+    TSClient.prototype.onChange = function(model, change) {
+        var params = {
+            file: model.uri.path,
+            line: change.range.startLineNumber,
+            offset: change.range.startColumn,
+            endLine: change.range.endLineNumber,
+            endOffset: change.range.endColumn,
+            insertString: change.text
+        };
+        this.notify('change', params);
+    };
+
+    TSClient.prototype.provideHover = function(model, position, token) {
+        var params = {
+            file: model.uri.path,
+            line: position.lineNumber,
+            offset: position.column
+        };
+        return this.call('quickInfo', params, token).then((info) => {
+            console.log(info);
+            return {
+                contents: [{language: 'markdown', value: info.displayString}, {language: 'markdown', value: info.documentation}],
+                range: {
+                    start: {lineNumber: info.start.line, column: info.start.offset},
+                    end: {lineNumber: info.end.line, column: info.end.offset}
+                }
+            }
+        });
+    };
+
     function WsHandler(ws) {
         this._ws = ws;
         this._clients = {};
@@ -512,5 +624,5 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         console.log(msg);
         this._ws.send('2' + lang + JSON.stringify(msg));
     }
-    return {WsHandler: WsHandler, LanguageClient: LanguageClient, registerLanguageService: registerLanguageService};
+    return {WsHandler: WsHandler, registerLanguageService: registerLanguageService};
 });

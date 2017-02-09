@@ -526,6 +526,7 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype._onMessage = function(msg) {
+        console.log(msg);
         if (msg.type === 'response') {
             var key = msg.request_seq;
             if (!key) {
@@ -580,7 +581,7 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             line: position.lineNumber,
             offset: position.column
         };
-        return this.call('quickInfo', params, token).then((info) => {
+        return this.call('quickinfo', params, token).then((info) => {
             console.log(info);
             return {
                 contents: [{language: 'markdown', value: info.displayString}, {language: 'markdown', value: info.documentation}],

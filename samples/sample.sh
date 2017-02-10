@@ -1,3 +1,6 @@
 alias ebserver="editbook --port 51234"
-alias ebclient="editbook --client"
 
+function ebclient() {
+	abs=`realpath $1`
+	editbook --client $abs
+}

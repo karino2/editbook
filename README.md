@@ -5,23 +5,28 @@
 EditBook is micro http server and web based editor.
 
 
-# build
+# install
 
 ```
-$ cd editbook
-$ go build main.go
+$ go get github.com/karino2/editbook
 ```
 
 # how to test
 
 ```
-$ cd editbook
-$ ./main &
+$ ./editbook &
 # open browser here with http://localhost:5123/static/
-$ ./main --client /README.md
+$ ./editbook --client /README.md
+```
+
+# how to use via ssh port forward
+
+```
+$ ssh -L 51234:localhost:51234 yoursshconfigname
+# open browser here with http://localhost:51234/static/
 ```
 
 # (partially) supported editor
 
-- plain
+- monaco https://github.com/Microsoft/monaco-editor
 - ace https://ace.c9.io/#nav=about

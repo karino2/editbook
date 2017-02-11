@@ -268,7 +268,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "editor",
-			Value: "ace",
+			Value: "monaco",
 			Usage: "Specify the name of editor types.",
 		},
 		cli.StringFlag{

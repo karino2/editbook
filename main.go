@@ -245,9 +245,9 @@ func clientMain(path string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	cmd := path
-	fmt.Println("client path:", cmd)
-	fmt.Fprintf(conn, cmd+"\n")
+	abspath, _ := filepath.Abs(path)
+	fmt.Println("client path:", abspath)
+	fmt.Fprintf(conn, abspath+"\n")
 }
 
 func main() {

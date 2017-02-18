@@ -1,6 +1,6 @@
 {
   "go": {
-    "commands": ["./langserver-go"],
+    "commands": ["langserver-go"],
     "protocol": "LS"
   },
   "python": {

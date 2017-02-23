@@ -177,11 +177,19 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 				}
 			case langlist:
 				log.Printf("Sending the list of langservice supported languages upon request.")
-				langs := []string{}
-				for lang, _ := range lsConfig {
-					langs = append(langs, lang)
+				langs := []map[string]string{}
+				for lang, conf := range lsConfig {
+					params := map[string]string{
+						"lang": lang,
+						"protocol": string(conf.Protocol),
+					}
+					langs = append(langs, params)
 				}
-				sendData(conn, append([]byte{langlist}, []byte(strings.Join(langs, ","))...))
+				bytes, err := json.Marshal(langs)
+				if err != nil {
+					log.Printf("Failed to marshal data: %v", err)
+				}
+				sendData(conn, append([]byte{langlist}, bytes...))
 			}
 		}
 	}()

@@ -89,9 +89,9 @@ function InitializeLanguageServices(ws, languageservice, callback) {
         }
         var handler = new languageservice.WsHandler(ws);
         var services = {};
-        data.slice(1).split(',').forEach(function(lang) {
-            services[lang] =
-                languageservice.registerLanguageService(lang, handler);
+        JSON.parse(data.slice(1)).forEach(function(params) {
+            services[params.lang] =
+                languageservice.registerLanguageService(params, handler);
         });
         ws.removeEventListener('message', onLanguageServiceList);
         callback(services);

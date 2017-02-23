@@ -28,11 +28,27 @@ type LangService interface {
 	io.Closer
 }
 
+type commandlineService struct {
+	w io.WriteCloser
+	rclose io.Closer
+	scanner *bufio.Scanner
+	cmd *exec.Cmd
+}
+
+func (cs *commandlineService) Close() error {
+	err := cs.w.Close()
+	if err != nil {
+		return err
+	}
+	err = cs.rclose.Close()
+	if err != nil {
+		return err
+	}
+	return cs.cmd.Process.Kill()
+}
+
 type languageServerService struct {
-	w              io.WriteCloser
-	rclose         io.Closer
-	scanner        *bufio.Scanner
-	cmd            *exec.Cmd
+	*commandlineService
 	rootPathFinder func() string
 	initialized    bool
 }
@@ -84,18 +100,6 @@ func (s *languageServerService) WriteMessage(msg []byte) error {
 	return err
 }
 
-func (s *languageServerService) Close() error {
-	err := s.w.Close()
-	if err != nil {
-		return err
-	}
-	err = s.rclose.Close()
-	if err != nil {
-		return err
-	}
-	return s.cmd.Process.Kill()
-}
-
 func (s *languageServerService) Init(msg []byte) error {
 	value := map[string]interface{}{}
 	if err := json.Unmarshal(msg, &value); err != nil {
@@ -120,8 +124,8 @@ func (s *languageServerService) Initialized() bool {
 	return s.initialized
 }
 
-func StartLanguageServer(lang string, config Config) (LangService, error) {
-	cmd := exec.Command(config.Commands[0], config.Commands[1:]...)
+func startCommandlineService(commands []string) (*commandlineService, error) {
+	cmd := exec.Command(commands[0], commands[1:]...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -152,17 +156,60 @@ func StartLanguageServer(lang string, config Config) (LangService, error) {
 			println(cmderrio.Text())
 		}
 	}()
-	svc := &languageServerService{
+	return &commandlineService{
 		w:              cmdIn,
 		rclose:         stdout,
 		scanner:        cmdOut,
 		cmd:            cmd,
+	}, nil
+}
+
+func StartLanguageServer(lang string, config Config) (LangService, error) {
+	commandlineService, err := startCommandlineService(config.Commands)
+	if err != nil {
+		return nil, err
+	}
+	svc := &languageServerService{
+		commandlineService: commandlineService,
 		rootPathFinder: DefaultRootPathFinder,
 	}
 	if finder, ok := RootPathFinders[lang]; ok {
 		svc.rootPathFinder = finder
 	}
 	return svc, nil
+}
+
+type tsServerService struct {
+	*commandlineService
+}
+
+func (s *tsServerService) ReadMessage() ([]byte, error) {
+	if !s.scanner.Scan() {
+		return nil, s.scanner.Err()
+	}
+	d := s.scanner.Bytes()
+	return d, nil
+}
+
+func (s *tsServerService) WriteMessage(msg []byte) error {
+	_, err := fmt.Fprintf(s.w, "%s\r\n", msg)
+	return err
+}
+
+func (ts *tsServerService) Init(msg []byte) error {
+	return nil
+}
+
+func (ts *tsServerService) Initialized() bool {
+	return true
+}
+
+func StartTSServer(lang string, config Config) (LangService, error) {
+	commandlineService, err := startCommandlineService(config.Commands)
+	if err != nil {
+		return nil, err
+	}
+	return &tsServerService{commandlineService: commandlineService}, nil
 }
 
 type SendDataFunc func(lang string, data []byte) error
@@ -181,7 +228,7 @@ func NewLangServices(configs map[string]Config, sendData SendDataFunc) *LangServ
 	}
 }
 
-func (lss *LangServices) GetOrInitializeLangService(lang string) (LangService, error) {
+func (lss *LangServices) GetOrInitializeLangService(lang string) (svc LangService, err error) {
 	if svc, ok := lss.svcs[lang]; ok {
 		return svc, nil
 	}
@@ -189,7 +236,11 @@ func (lss *LangServices) GetOrInitializeLangService(lang string) (LangService, e
 	if !ok {
 		return nil, fmt.Errorf("Config not found for lang %s", lang)
 	}
-	svc, err := StartLanguageServer(lang, cfg)
+	if cfg.Protocol == LanguageServer {
+		svc, err = StartLanguageServer(lang, cfg)
+	} else {
+		svc, err = StartTSServer(lang, cfg)
+	}
 	if err != nil {
 		return nil, err
 	}

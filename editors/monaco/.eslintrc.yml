@@ -4,4 +4,7 @@ env:
   es6: true
 
 rules:
+  # TODO: camelcase should be added after the refactoring.
+  camelcase: off
   linebreak-style: off
+  no-var: off

@@ -7,18 +7,19 @@ function NotifyModifyStatusChanged() {
     g_menu.setEnabled(g_current.dirty);
 }
 
+// eslint-disable-next-line no-unused-vars
 function EditBook_NewEditor(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);
 
-    var main_editor =  new EditBookMonacoEditor(menu.main_div);
+    var main_editor = new EditBookMonacoEditor(menu.main_div);
     var sub_editor = new EditBookMonacoEditor(menu.sub_div);
 
-    var onInit = InitializeModule();
-    onInit.push(() => { main_editor.init(); });
-    onInit.push(() => { sub_editor.init(); });
+    var onInit = initializeModule();
+    onInit.push(() => main_editor.init());
+    onInit.push(() => sub_editor.init());
     onInit.push((_, languageservice) => {
-        InitializeLanguageServices(ws, languageservice, function(services) {
+        initializeLanguageServices(ws, languageservice, function(services) {
             main_editor.registerLangServices(services);
             sub_editor.registerLangServices(services);
         });
@@ -28,10 +29,12 @@ function EditBook_NewEditor(elem, ws) {
     g_menu = menu;
 
     menu.save = () => g_current.save();
-    menu.split_window = (main_div, sub_div) => { main_editor.editor.layout(); sub_editor.editor.layout();
-         sub_editor.editor.setModel(main_editor.editor.getModel());
-         sub_editor.path = main_editor.path;
-         };
+    menu.split_window = (main_div, sub_div) => {
+        main_editor.editor.layout();
+        sub_editor.editor.layout();
+        sub_editor.editor.setModel(main_editor.editor.getModel());
+        sub_editor.path = main_editor.path;
+    };
     menu.unsplit_window = (main_div) => {
         if(g_current != main_editor) {
             // we want to detach sub_editor from div and re-attach to main_div.
@@ -57,7 +60,7 @@ function EditBook_NewEditor(elem, ws) {
     };
 }
 
-function InitializeModule() {
+function initializeModule() {
     function onAmdEnabled() {
         require.config({paths:
             {vs: '/editor/vs', languageservice: '/editor/languageservice'}});
@@ -81,7 +84,7 @@ function InitializeModule() {
     return onInit;
 }
 
-function InitializeLanguageServices(ws, languageservice, callback) {
+function initializeLanguageServices(ws, languageservice, callback) {
     function onLanguageServiceList(ev) {
         var data = ev.data;
         if (data[0] !== '3') {

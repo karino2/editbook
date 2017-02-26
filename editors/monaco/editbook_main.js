@@ -1,42 +1,42 @@
 'use strict';
 
-var g_current;
-var g_menu;
+var gCurrent;
+var gMenu;
 
 function notifyModifyStatusChanged() {
-    g_menu.setEnabled(g_current.dirty);
+    gMenu.setEnabled(gCurrent.dirty);
 }
 
 // eslint-disable-next-line no-unused-vars
-function EditBook_NewEditor(elem, ws) {
+EditBook.newEditor = function(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);
 
-    var main_editor = new EditBookMonacoEditor(menu.main_div);
-    var sub_editor = new EditBookMonacoEditor(menu.sub_div);
+    var mainEditor = new EditBookMonacoEditor(menu.mainDiv);
+    var subEditor = new EditBookMonacoEditor(menu.subDiv);
 
     var onInit = initializeModule();
-    onInit.push(() => main_editor.init());
-    onInit.push(() => sub_editor.init());
+    onInit.push(() => mainEditor.init());
+    onInit.push(() => subEditor.init());
     onInit.push((_, languageservice) => {
         initializeLanguageServices(ws, languageservice, function(services) {
-            main_editor.registerLangServices(services);
-            sub_editor.registerLangServices(services);
+            mainEditor.registerLangServices(services);
+            subEditor.registerLangServices(services);
         });
     });
 
-    g_current = main_editor;
-    g_menu = menu;
+    gCurrent = mainEditor;
+    gMenu = menu;
 
-    menu.save = () => g_current.save();
-    menu.split_window = (main_div, sub_div) => {
-        main_editor.editor.layout();
-        sub_editor.editor.layout();
-        sub_editor.editor.setModel(main_editor.editor.getModel());
-        sub_editor.path = main_editor.path;
+    menu.save = () => gCurrent.save();
+    menu.splitWindow = (mainDiv, subDiv) => {
+        mainEditor.editor.layout();
+        subEditor.editor.layout();
+        subEditor.editor.setModel(mainEditor.editor.getModel());
+        subEditor.path = mainEditor.path;
     };
-    menu.unsplit_window = (main_div) => {
-        if(g_current != main_editor) {
+    menu.unsplitWindow = (mainDiv) => {
+        if(gCurrent != mainEditor) {
             // we want to detach sub_editor from div and re-attach to main_div.
             // But I don't know how to do it. So just set model and path
             // from sub_editor. This lost scroll position information, etc.
@@ -44,19 +44,19 @@ function EditBook_NewEditor(elem, ws) {
 
             // var state = g_current.editor.saveViewState();
 
-            main_editor.editor.setModel(g_current.editor.getModel());
-            main_editor.path = g_current.path;
+            mainEditor.editor.setModel(gCurrent.editor.getModel());
+            mainEditor.path = gCurrent.path;
 
             // main_editor.restoreViewState(state);
         }
-        main_editor.editor.layout();
+        mainEditor.editor.layout();
     };
 
     return {
         init: ()=>{},
         open: (path, data, abspath) => {
             menu.setPath(path);
-            g_current.open(abspath, data);
+            gCurrent.open(abspath, data);
         },
     };
 }
@@ -106,14 +106,14 @@ function initializeLanguageServices(ws, languageservice, callback) {
 }
 
 function notifyFocusChanged(editor) {
-    g_current = editor;
-    g_menu.setPath(editor.path);
+    gCurrent = editor;
+    gMenu.setPath(editor.path);
 }
 
 // need to set
 // - mehu.save()
-// - menu.split_window = (main_div, sub_div) =>{}
-// - menu.unsplit_window = (main_div) => {}
+// - menu.splitWindow = (main_div, sub_div) =>{}
+// - menu.unsplitWindow = (main_div) => {}
 function MonacoMenu(holder) {
     var builder = [];
     builder.push(
@@ -126,14 +126,14 @@ function MonacoMenu(holder) {
     );
     holder.html(builder.join(''));
 
-    var main_div = document.getElementById('mainDiv');
-    this.main_div = main_div;
+    var mainDiv = document.getElementById('mainDiv');
+    this.mainDiv = mainDiv;
 
-    var sub_div = document.createElement('div');
-    sub_div.style.cssText = 'position: absolute; top:0px; bottom:0px';
-    sub_div.style.overflow = 'hidden';
-    sub_div.id = 'subDiv';
-    this.sub_div = sub_div;
+    var subDiv = document.createElement('div');
+    subDiv.style.cssText = 'position: absolute; top:0px; bottom:0px';
+    subDiv.style.overflow = 'hidden';
+    subDiv.id = 'subDiv';
+    this.subDiv = subDiv;
 
     var menu = this;
 
@@ -152,25 +152,25 @@ function MonacoMenu(holder) {
         // eslint-disable-next-line no-invalid-this
         if(this.checked) {
             // split
-            holder.append(sub_div);
+            holder.append(subDiv);
 
-            var width = main_div.clientWidth;
+            var width = mainDiv.clientWidth;
 
             var editorWidth = width / 2;
 
-            resize(main_div, 0, main_div.offsetTop, '50%');
-            resize(sub_div, editorWidth, main_div.offsetTop, '50%');
+            resize(mainDiv, 0, mainDiv.offsetTop, '50%');
+            resize(subDiv, editorWidth, mmainDivoffsetTop, '50%');
 
-            menu.split_window(main_div, sub_div);
+            menu.splitWindow(mainDiv, subDiv);
         } else {
             // unsplit
 
-            var width = main_div.clientWidth;
+            var width = mainDiv.clientWidth;
 
-            $(sub_div).remove();
-            resize(main_div, 0, main_div.top, '100%');
+            $(subDiv).remove();
+            resize(mainDiv, 0, mainDiv.top, '100%');
 
-            menu.unsplit_window(main_div);
+            menu.unsplitWindow(mainDiv);
         }
     });
 }
@@ -216,10 +216,10 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         notifyModifyStatusChanged();
         this.lservice = {onChange: (a, b)=>{}};
         model.onDidChangeContent((change) => {
-            var prev_dirty = this.dirty;
+            var prevDirty = this.dirty;
             this.dirty = (
                 this.savedVersionId !== model.getAlternativeVersionId());
-            if(prev_dirty != this.dirty) {
+            if(prevDirty != this.dirty) {
                 notifyModifyStatusChanged();
             }
 
@@ -260,7 +260,7 @@ EditBookMonacoEditor.prototype.save = function() {
     }
     // TODO: should use willSaveWaitUntil?
     // eslint-disable-next-line new-cap
-    EditBook_SaveFile(this.path, model.getValue(), () => {
+    EditBook.saveFile(this.path, model.getValue(), () => {
         this.savedVersionId = model.getAlternativeVersionId();
         this.dirty = false;
         notifyModifyStatusChanged();

@@ -2,7 +2,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     var Promise = monaco.Promise;
 
     function registerLanguageService(params, wsHandler) {
-        var ClientClass = (params.protocol === 'TS') ? TSClient : LanguageClient;
+        var ClientClass =
+            (params.protocol === 'TS') ? TSClient : LanguageClient;
         var client = new ClientClass(params.lang, wsHandler);
         monaco.languages.onLanguage(params.lang, function() {
             client.init();
@@ -79,19 +80,23 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 monaco.languages.registerCodeActionProvider(lang, this);
             }
             if (capabilities.documentFormattingProvider) {
-                monaco.languages.registerDocumentFormattingEditProvider(lang, this);
+                monaco.languages.registerDocumentFormattingEditProvider(
+                    lang, this);
             }
             if (capabilities.documentRangeFormattingProvider) {
-                monaco.languages.registerDocumentRangeFormattingEditProvider(lang, this);
+                monaco.languages.registerDocumentRangeFormattingEditProvider(
+                    lang, this);
             }
             if (capabilities.documentOnTypeFormattingProvider) {
                 var opts = capabilities.documentOnTypeFormattingProvider;
                 this.autoFormatTriggerCharacters = [opts.firstTriggerCharacter];
                 if (opts.moreTriggerCharacters) {
                     Array.prototype.push.apply(
-                        this.autoFormatTriggerCharacters, opts.moreTriggerCharacters);
+                        this.autoFormatTriggerCharacters,
+                        opts.moreTriggerCharacters);
                 }
-                monaco.languages.registerOnTypeFormattingEditProvider(lang, this);
+                monaco.languages.registerOnTypeFormattingEditProvider(
+                    lang, this);
             }
             if (capabilities.documentLinkProvider) {
                 if (capabilities.documentLinkProvider.resolveProvider) {
@@ -131,8 +136,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             });
             if (token) {
                 token.onCancellationRequested(() => {
- p.cancel();
-});
+                    p.cancel();
+                });
             }
             return p.then(function(resp) {
                 if (resp.error) {
@@ -180,8 +185,14 @@ define('languageservice', ['vs/editor/editor.main'], function() {
 
     LanguageClient.prototype.rangeToLS = function(range) {
         return {
-            start: {line: range.startLineNumber - 1, character: range.startColumn - 1},
-            end: {line: range.endLineNumber - 1, character: range.endColumn - 1},
+            start: {
+                line: range.startLineNumber - 1,
+                character: range.startColumn - 1,
+            },
+            end: {
+                line: range.endLineNumber - 1,
+                character: range.endColumn - 1,
+            },
         };
     };
 
@@ -260,23 +271,26 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         this.notify('textDocument/didChange', params);
     };
 
-    LanguageClient.prototype.provideReferences = function(model, position, context, token) {
+    LanguageClient.prototype.provideReferences = function(
+        model, position, context, token) {
         var params = this.getDocumentParams(model, position);
         params.includeDeclaration = context.includeDeclaration;
-        return this.call('textDocument/references', params, token).then((refs) => {
-            if (!refs) {
-                return refs;
-            }
-            return refs.map((location) => this.locationToMonaco(location));
-        });
+        return this.call('textDocument/references', params, token)
+            .then((refs) => {
+                if (!refs) {
+                    return refs;
+                }
+                return refs.map((location) => this.locationToMonaco(location));
+            });
     };
 
-    LanguageClient.prototype.provideRenameEdits = function(model, position, newName, token) {
+    LanguageClient.prototype.provideRenameEdits = function(
+        model, position, newName, token) {
         var params = this.getDocumentParams(model, position);
         params.newName = newName;
         return this.call('textDocument/rename', params, token).then((edits) => {
             var results = [];
-            for (var key in edits.changes) {
+            Object.keys(edits.changes).forEach((key) => {
                 var cs = edits.changes[key];
                 var uri = monaco.Uri.parse(key);
                 cs.forEach((change) => {
@@ -286,26 +300,31 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                         newText: change.newText,
                     });
                 });
-            }
+            });
             return {edits: results};
         });
     };
 
-    LanguageClient.prototype.provideSignatureHelp = function(model, position, token) {
-        return this.call('textDocument/signatureHelp', this.getDocumentParams(model, position), token).then((help) => {
-            help.signatures.forEach((sig) => {
-                // parameters is optional in LS, but not optional in monaco.
-                if (!sig.parameters) {
-                    // I've seen python-language-server has 'params' field for 'parameters'.
-                    sig.parameters = sig.params || [];
-                }
+    LanguageClient.prototype.provideSignatureHelp = function(
+        model, position, token) {
+        var params = this.getDocumentParams(model, position);
+        return this.call('textDocument/signatureHelp', params, token)
+            .then((help) => {
+                help.signatures.forEach((sig) => {
+                    // parameters is optional in LS, but not optional in monaco.
+                    if (!sig.parameters) {
+                        // I've seen python-language-server has 'params' field
+                        // for 'parameters'.
+                        sig.parameters = sig.params || [];
+                    }
+                });
+                return help;
             });
-            return help;
-        });
     };
 
     LanguageClient.prototype.provideHover = function(model, position, token) {
-        return this.call('textDocument/hover', this.getDocumentParams(model, position), token).then((hover) => {
+        var params = this.getDocumentParams(model, position);
+        return this.call('textDocument/hover', params, token).then((hover) => {
             if (!hover) {
                 return hover;
             }
@@ -320,33 +339,47 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     LanguageClient.prototype.provideDocumentSymbols = function(model, token) {
-        return this.call('textDocument/documentSymbol', this.getDocumentParams(model), token).then((syms) => {
-            syms.forEach((sym) => {
-                // I don't know why, but the number is shifted between LS and VS.
-                sym.kind = sym.kind - 1;
-                sym.location = this.locationToMonaco(sym.location);
+        var params = this.getDocumentParams(model);
+        return this.call('textDocument/documentSymbol', params, token)
+            .then((syms) => {
+                syms.forEach((sym) => {
+                    // I don't know why, but the number is shifted
+                    // between LS and VS.
+                    sym.kind = sym.kind - 1;
+                    sym.location = this.locationToMonaco(sym.location);
+                });
+                return syms;
             });
-            return syms;
-        });
     };
 
-    LanguageClient.prototype.provideDocumentHighlights = function(model, position, token) {
-        return this.call('textDocument/documentHighlight', this.getDocumentParams(model, position), token).then((highlights) => {
-            return highlights.map((highlight) => {
-                return {range: this.rangeToMonaco(highlight.range), kind: highlight.kind - 1};
+    LanguageClient.prototype.provideDocumentHighlights = function(
+        model, position, token) {
+        var params = this.getDocumentParams(model, position);
+        return this.call(
+            'textDocument/documentHighlight', params, token)
+            .then((highlights) => {
+                return highlights.map((highlight) => {
+                    return {
+                        range: this.rangeToMonaco(highlight.range),
+                        kind: highlight.kind - 1,
+                    };
+                });
             });
-        });
     };
 
-    LanguageClient.prototype.provideDefinition = function(model, position, token) {
-        return this.call('textDocument/definition', this.getDocumentParams(model, position), token).then((def) => {
-            if (!Array.isArray(def)) {
-                return this.locationToMonaco(def);
-            } else {
-                return def.map((location) => this.locationToMonaco(location));
-            }
-            return def;
-        });
+    LanguageClient.prototype.provideDefinition = function(
+        model, position, token) {
+        var params = this.getDocumentParams(model, position);
+        return this.call('textDocument/definition', params, token)
+            .then((def) => {
+                if (!Array.isArray(def)) {
+                    return this.locationToMonaco(def);
+                } else {
+                    return def.map(
+                        (location) => this.locationToMonaco(location));
+                }
+                return def;
+            });
     };
 
     LanguageClient.prototype.codeLensToLS = function(lens) {
@@ -362,12 +395,15 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     LanguageClient.prototype.provideCodeLenses = function(model, token) {
-        return this.call('textDocument/codeLens', this.getDocumentParams(model), token).then((lenses) => {
-            return lenses.map((lens) => this.codeLensToLS(lens));
-        });
+        var params = this.getDocumentParams(model);
+        return this.call('textDocument/codeLens', params, token)
+            .then((lenses) => {
+                return lenses.map((lens) => this.codeLensToLS(lens));
+            });
     };
 
-    LanguageClient.prototype.resolveCodeLensImpl = function(model, codeLens, token) {
+    LanguageClient.prototype.resolveCodeLensImpl = function(
+        model, codeLens, token) {
         var params = {range: this.rangeToLS(codeLens.range)};
         if (codeLens.data) {
             params.data = codeLens.data;
@@ -379,10 +415,12 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 arguments: codeLens.command.arguments,
             };
         }
-        return this.call('codeLens/resolve', params, token).then((codeLens) => this.codeLensToLS(codeLens));
+        return this.call('codeLens/resolve', params, token).then(
+            (codeLens) => this.codeLensToLS(codeLens));
     };
 
-    LanguageClient.prototype.provideCodeActions = function(model, position, context, token) {
+    LanguageClient.prototype.provideCodeActions = function(
+        model, position, context, token) {
         var params = this.getDocumentParams(model, position);
         params.context = [];
         context.markers.forEach((marker) => {
@@ -393,85 +431,106 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             diag.message = marker.message;
             params.context.push(diag);
         });
-        return this.call('textDocument/codeAction', params, token).then((commands) => commands.map((command) => {
-            return {
-                command: {
-                    id: command.command,
-                    title: command.title,
-                    arguments: command.arguments,
-                },
-                score: 0,
-            };
-        }));
+        return this.call('textDocument/codeAction', params, token)
+            .then((commands) => {
+                return commands.map((command) => {
+                    return {
+                        command: {
+                            id: command.command,
+                            title: command.title,
+                            arguments: command.arguments,
+                        },
+                        score: 0,
+                    };
+                });
+            });
     };
 
-    LanguageClient.prototype.provideDocumentFormattingEdits = function(model, options, token) {
+    LanguageClient.prototype.provideDocumentFormattingEdits = function(
+        model, options, token) {
         var params = this.getDocumentParams(model);
         params.options = options;
-        return this.call('textDocument/formatting', params, token).then((edits) => {
-            edits.forEach((edit) => {
-                edit.range = this.rangeToMonaco(edit.range);
+        return this.call('textDocument/formatting', params, token)
+            .then((edits) => {
+                edits.forEach((edit) => {
+                    edit.range = this.rangeToMonaco(edit.range);
+                });
+                return edits;
             });
-            return edits;
-        });
     };
 
-    LanguageClient.prototype.provideDocumentRangeFormattingEdits = function(model, range, options, token) {
+    LanguageClient.prototype.provideDocumentRangeFormattingEdits = function(
+        model, range, options, token) {
         var params = this.getDocumentParams(model);
         params.range = this.rangeToLS(range);
         params.options = options;
-        return this.call('textDocument/rangeFormatting', params, token).then((edits) => {
-            edits.forEach((edit) => {
-                edit.range = this.rangeToMonaco(edit.range);
+        return this.call('textDocument/rangeFormatting', params, token)
+            .then((edits) => {
+                edits.forEach((edit) => {
+                    edit.range = this.rangeToMonaco(edit.range);
+                });
+                return edits;
             });
-            return edits;
-        });
     };
 
-    LanguageClient.prototype.provideOnTypeFormattingEdits = function(model, position, ch, options, token) {
+    LanguageClient.prototype.provideOnTypeFormattingEdits = function(
+        model, position, ch, options, token) {
         var params = this.getDocumentParams(model, position);
         params.ch = ch;
         params.options = options;
-        return this.call('textDocument/onTypeFormatting', params, token).then((edits) => {
-            edits.forEach((edit) => {
-                edit.range = this.rangeToMonaco(edit.range);
+        return this.call('textDocument/onTypeFormatting', params, token)
+            .then((edits) => {
+                edits.forEach((edit) => {
+                    edit.range = this.rangeToMonaco(edit.range);
+                });
+                return edits;
             });
-            return edits;
-        });
     };
 
     LanguageClient.prototype.provideLinks = function(model, token) {
-        return this.call('textDocument/documentLink', this.getDocumentParams(model), token).then((links) => {
-            links = links || [];
-            return links.map((link) => {
-                return {
-                    range: this.rangeToMonaco(link.range),
-                    uri: monaco.Uri.parse(link.target),
-                };
+        var params = this.getDocumentParams(model);
+        return this.call('textDocument/documentLink', params, token)
+            .then((links) => {
+                links = links || [];
+                return links.map((link) => {
+                    return {
+                        range: this.rangeToMonaco(link.range),
+                        uri: monaco.Uri.parse(link.target),
+                    };
+                });
             });
-        });
     };
 
     LanguageClient.prototype.resolveLinkImpl = function(link, token) {
-        var params = {range: this.rangeToLS(link.range), target: link.uri.toString()};
+        var params = {
+            range: this.rangeToLS(link.range),
+            target: link.uri.toString(),
+        };
         return this.call('documentLink/resolve', params, token).then((link) => {
-            return {range: this.rangeToMonaco(link.range), uri: monaco.Uri.parse(link.target)};
+            return {
+                range: this.rangeToMonaco(link.range),
+                uri: monaco.Uri.parse(link.target),
+            };
         });
     };
 
-    LanguageClient.prototype.provideCompletionItems = function(model, position, token) {
-        return this.call('textDocument/completion', this.getDocumentParams(model, position), token).then((comps) => {
-            var items = Array.isArray(comps) ? comps : comps.items;
-            items.forEach((item) => {
-                if (item.insertText && item.insertTextFormat == 2) {
-                    item.insertText = {value: item.insertText};
-                }
-                if (item.textEdit) {
-                    item.textEdit.range = this.rangeToMonaco(item.textEdit.range);
-                }
+    LanguageClient.prototype.provideCompletionItems = function(
+        model, position, token) {
+        var params = this.getDocumentParams(model, position);
+        return this.call('textDocument/completion', params, token)
+            .then((comps) => {
+                var items = Array.isArray(comps) ? comps : comps.items;
+                items.forEach((item) => {
+                    if (item.insertText && item.insertTextFormat == 2) {
+                        item.insertText = {value: item.insertText};
+                    }
+                    if (item.textEdit) {
+                        item.textEdit.range = this.rangeToMonaco(
+                            item.textEdit.range);
+                    }
+                });
+                return comps;
             });
-            return comps;
-        });
     };
 
     LanguageClient.prototype.resolveCompletionItemImpl = function(item, token) {
@@ -501,7 +560,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         wsHandler.registerClient(lang, this);
     }
 
-    TSClient.prototype.send = function(command, arguments, typ, waitResponse, token) {
+    TSClient.prototype.send = function(
+        command, arguments, typ, waitResponse, token) {
         var msg = {
             seq: this._id++,
             command: command,
@@ -561,7 +621,6 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype.init = function() {
-        // TODO: register.
         monaco.languages.registerReferenceProvider(this._lang, this);
         monaco.languages.registerRenameProvider(this._lang, this);
         monaco.languages.registerSignatureHelpProvider(this._lang, this);
@@ -570,13 +629,16 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         monaco.languages.registerDocumentHighlightProvider(this._lang, this);
         monaco.languages.registerDefinitionProvider(this._lang, this);
         monaco.languages.registerImplementationProvider(this._lang, this);
-        monaco.languages.registerDocumentRangeFormattingEditProvider(this._lang, this);
+        monaco.languages.registerDocumentRangeFormattingEditProvider(
+            this._lang, this);
         monaco.languages.registerOnTypeFormattingEditProvider(this._lang, this);
         monaco.languages.registerCompletionItemProvider(this._lang, this);
     };
 
     TSClient.prototype.onOpen = function(model) {
-        this.notify('open', {file: model.uri.path, fileContent: model.getValue()});
+        this.notify(
+            'open', {file: model.uri.path, fileContent: model.getValue()}
+        );
     };
 
     TSClient.prototype.willSave = function(model) {
@@ -625,11 +687,16 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype.fileSpanToMonaco = function(span) {
-        return {uri: monaco.Uri.file(span.file), range: this.rangeToMonaco(span)};
+        return {
+            uri: monaco.Uri.file(span.file),
+            range: this.rangeToMonaco(span),
+        };
     };
 
-    TSClient.prototype.provideReferences = function(model, position, context, token) {
-        return this.call('references', this.fileLocation(model, position), token).then((refs) => {
+    TSClient.prototype.provideReferences = function(
+        model, position, context, token) {
+        var params = this.fileLocation(model, position);
+        return this.call('references', params, token).then((refs) => {
             var results = [];
             refs.refs.forEach((ref) => {
                 if (!ref.isDefinition || context.includeDeclaration) {
@@ -643,10 +710,13 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         });
     };
 
-    TSClient.prototype.provideRenameEdits = function(model, position, newName, token) {
-        return this.call('rename', this.fileLocation(model, position), token).then((rename) => {
+    TSClient.prototype.provideRenameEdits = function(
+        model, position, newName, token) {
+        var params = this.fileLocation(model, position);
+        return this.call('rename', params, token).then((rename) => {
             if (!rename.info.canRename) {
-                return {edits: [], rejectionReason: rename.info.localizedErrorMessage};
+                var msg = rename.info.localizedErrorMessage;
+                return {edits: [], rejectionReason: msg};
             }
             var edits = [];
             rename.locs.forEach((fileLoc) => {
@@ -664,36 +734,38 @@ define('languageservice', ['vs/editor/editor.main'], function() {
 
     TSClient.prototype.signatureHelpTriggerCharacters = ['('];
     TSClient.prototype.provideSignatureHelp = function(model, position, token) {
-        return this.call(
-            'signatureHelp', this.fileLocation(model, position), token).then((help) => {
-                var sigs = [];
-                help.items.forEach((item) => {
-                    sigs.push({
-                        label: item.displayParts.map((p) => p.text).join(),
-                        documentation: item.documentation.map(
-                            (doc) => doc.text).join(),
-                        parameters: item.parameters.map((p) => {
-                            return {
-                                label: p.name,
-                                documentation: p.documentation.map(
-                                    (doc) => doc.text).join('\n'),
-                            };
-                        }),
-                    });
+        var params = this.fileLocation(model, position);
+        return this.call('signatureHelp', params, token).then((help) => {
+            var sigs = [];
+            help.items.forEach((item) => {
+                sigs.push({
+                    label: item.displayParts.map((p) => p.text).join(),
+                    documentation: item.documentation.map(
+                        (doc) => doc.text).join(),
+                    parameters: item.parameters.map((p) => {
+                        return {
+                            label: p.name,
+                            documentation: p.documentation.map(
+                                (doc) => doc.text).join('\n'),
+                        };
+                    }),
                 });
-                return {
-                    signatures: sigs,
-                    activeSignature: help.selectedItemIndex,
-                    activeParameter: help.argumentIndex,
-                };
             });
+            return {
+                signatures: sigs,
+                activeSignature: help.selectedItemIndex,
+                activeParameter: help.argumentIndex,
+            };
+        });
     };
 
     TSClient.prototype.provideHover = function(model, position, token) {
-        return this.call('quickinfo', this.fileLocation(model, position), token).then((info) => {
+        var params = this.fileLocation(model, position);
+        return this.call('quickinfo', params, token).then((info) => {
             contents = [{language: this._lang, value: info.displayString}];
             if (info.documentation) {
-                contents.push({language: this._lang, value: info.documentation});
+                contents.push(
+                    {language: this._lang, value: info.documentation});
             }
             return {contents: contents, range: this.rangeToMonaco(info)};
         });
@@ -731,7 +803,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             'directory': undefined,
             'external module name': monaco.languages.SymbolKind.Module,
         };
-        return this.call('navbar', this.fileLocation(model), token).then((items) => {
+        var params = this.fileLocation(model);
+        return this.call('navbar', params, token).then((items) => {
             var results = [];
             items.forEach((item) => {
                 if (kindMapping[item.kind] === undefined) {
@@ -741,7 +814,10 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 results.push({
                     name: item.text,
                     kind: kindMapping[item.kind],
-                    location: {uri: model.uri, range: this.rangeToMonaco(item.spans[0])},
+                    location: {
+                        uri: model.uri,
+                        range: this.rangeToMonaco(item.spans[0]),
+                    },
                 });
             });
             console.log(results);
@@ -749,7 +825,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         });
     };
 
-    TSClient.prototype.provideDocumentHighlights = function(model, position, token) {
+    TSClient.prototype.provideDocumentHighlights = function(
+        model, position, token) {
         var params = this.fileLocation(model, position);
         params.filesToSearch = [];
         var kindMapping = {
@@ -758,31 +835,42 @@ define('languageservice', ['vs/editor/editor.main'], function() {
             reference: monaco.languages.DocumentHighlightKind.Read,
             writtenReference: monaco.languages.DocumentHighlightKind.Write,
         };
-        return this.call('documentHighlights', params, token).then((highlights) => {
-            return highlights.map((highlight) => {
-                var span = highlight.highlightSpans[0];
-                return {range: this.rangeToMonaco(span), kind: kindMapping[span.kind]};
+        return this.call('documentHighlights', params, token)
+            .then((highlights) => {
+                return highlights.map((highlight) => {
+                    var span = highlight.highlightSpans[0];
+                    return {
+                        range: this.rangeToMonaco(span),
+                        kind: kindMapping[span.kind],
+                    };
+                });
             });
-        });
     };
 
     TSClient.prototype.provideDefinition = function(model, position, token) {
-        return this.call('definition', this.fileLocation(model, position), token).then((def) => {
+        var params = this.fileLocation(model, position);
+        return this.call('definition', params, token).then((def) => {
             return def.map((d) => this.fileSpanToMonaco(d));
         });
     };
 
-    TSClient.prototype.provideImplementation = function(model, position, token) {
-        return this.call('implementation', this.fileLocation(model, position), token).then((impl) => {
+    TSClient.prototype.provideImplementation = function(
+        model, position, token) {
+        var params = this.fileLocation(model, position);
+        return this.call('implementation', params, token).then((impl) => {
             return impl.map((i) => this.fileSpantoMonaco(i));
         });
     };
 
-    TSClient.prototype.provideDocumentRangeFormattingEdits = function(model, range, options, token) {
+    TSClient.prototype.provideDocumentRangeFormattingEdits = function(
+        model, range, options, token) {
         var params = this.fileLocation(model, range.start);
         params.endLine = range.endLineNumber;
         params.endOffset = range.endColumn;
-        params.options = {tabSize: options.tabSize, convertTabsToSpaces: options.insertSpaces};
+        params.options = {
+            tabSize: options.tabSize,
+            convertTabsToSpaces: options.insertSpaces,
+        };
         return this.call('format', params, token).then((edits) => {
             return edits.map((edit) => {
                 return {range: this.rangeToMonaco(edit), text: edit.newText};
@@ -791,10 +879,14 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype.autoFormatTriggerCharacters = ['\n', ';', '}'];
-    TSClient.prototype.provideOnTypeFormattingEdits = function(model, position, ch, options, token) {
+    TSClient.prototype.provideOnTypeFormattingEdits = function(
+        model, position, ch, options, token) {
         var params = this.fileLocation(model, position);
         params.key = ch;
-        params.options = {tabSize: options.tabSize, convertTabsToSpaces: options.insertSpaces};
+        params.options = {
+            tabSize: options.tabSize,
+            convertTabsToSpaces: options.insertSpaces,
+        };
         return this.call('formatonkey', params, token).then((edits) => {
             return edits.map((edit) => {
                 return {range: this.rangeToMonaco(edit), text: edit.newText};
@@ -803,7 +895,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype.triggerCharacters = ['.'];
-    TSClient.prototype.provideCompletionItems = function(model, position, token) {
+    TSClient.prototype.provideCompletionItems = function(
+        model, position, token) {
         var kindMapping = {
             'warning': monaco.languages.CompletionItemKind.Value,
             'keyword': monaco.languages.CompletionItemKind.Keyword,
@@ -882,5 +975,8 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         console.log(msg);
         this._ws.send('2' + lang + JSON.stringify(msg));
     };
-    return {WsHandler: WsHandler, registerLanguageService: registerLanguageService};
+    return {
+        WsHandler: WsHandler,
+        registerLanguageService: registerLanguageService,
+    };
 });

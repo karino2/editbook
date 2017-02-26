@@ -3,7 +3,7 @@
 var g_current;
 var g_menu;
 
-function NotifyModifyStatusChanged() {
+function notifyModifyStatusChanged() {
     g_menu.setEnabled(g_current.dirty);
 }
 
@@ -38,8 +38,9 @@ function EditBook_NewEditor(elem, ws) {
     menu.unsplit_window = (main_div) => {
         if(g_current != main_editor) {
             // we want to detach sub_editor from div and re-attach to main_div.
-            // But I don't know how to do it. So just set model and path from sub_editor.
-            // This lost scroll position information, etc. May be just restore scroll position is better than now.
+            // But I don't know how to do it. So just set model and path
+            // from sub_editor. This lost scroll position information, etc.
+            // May be just restore scroll position is better than now.
 
             // var state = g_current.editor.saveViewState();
 
@@ -104,7 +105,7 @@ function initializeLanguageServices(ws, languageservice, callback) {
     ws.send('3');
 }
 
-function NotifyFocusChanged(editor) {
+function notifyFocusChanged(editor) {
     g_current = editor;
     g_menu.setPath(editor.path);
 }
@@ -116,16 +117,16 @@ function NotifyFocusChanged(editor) {
 function MonacoMenu(holder) {
     var builder = [];
     builder.push(
-'<button type="button" id="saveButton">Save</button> -- <input type="checkbox" id="split">split<br>',
+'<button type="button" id="saveButton">Save</button> ' +
+'-- <input type="checkbox" id="split">split<br>',
 'path: <span id="pathSpan"></span><br>',
-// '<div id="mainDiv" style="position:absolute;top:50;left:0;bottom:0;right:0">',
-'<div id="mainDiv" style="position:absolute;top:50;left:0;bottom:0;width:100%;overflow:hidden">',
-// 'This is the test area.',
+'<div id="mainDiv" ' +
+'style="position:absolute;top:50;left:0;bottom:0;width:100%;overflow:hidden">',
 '</div>'
     );
     holder.html(builder.join(''));
 
-    var main_div = document.getElementById('mainDiv'); // holder.find("#mainDiv");
+    var main_div = document.getElementById('mainDiv');
     this.main_div = main_div;
 
     var sub_div = document.createElement('div');
@@ -148,6 +149,7 @@ function MonacoMenu(holder) {
     }
 
     $('#split').change(function() {
+        // eslint-disable-next-line no-invalid-this
         if(this.checked) {
             // split
             holder.append(sub_div);
@@ -211,13 +213,14 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         this.dirty = false;
         this.savedVersionId = model.getAlternativeVersionId();
 
-        NotifyModifyStatusChanged();
+        notifyModifyStatusChanged();
         this.lservice = {onChange: (a, b)=>{}};
         model.onDidChangeContent((change) => {
             var prev_dirty = this.dirty;
-            this.dirty = this.savedVersionId !== model.getAlternativeVersionId();
+            this.dirty = (
+                this.savedVersionId !== model.getAlternativeVersionId());
             if(prev_dirty != this.dirty) {
-                NotifyModifyStatusChanged();
+                notifyModifyStatusChanged();
             }
 
             this.lservice.onChange(model, change);
@@ -256,10 +259,11 @@ EditBookMonacoEditor.prototype.save = function() {
         svc.willSave(model);
     }
     // TODO: should use willSaveWaitUntil?
+    // eslint-disable-next-line new-cap
     EditBook_SaveFile(this.path, model.getValue(), () => {
         this.savedVersionId = model.getAlternativeVersionId();
         this.dirty = false;
-        NotifyModifyStatusChanged();
+        notifyModifyStatusChanged();
 
         toastr.info('saved');
         if (svc) {
@@ -268,15 +272,12 @@ EditBookMonacoEditor.prototype.save = function() {
     });
 };
 
-EditBookMonacoEditor.initializeModule = function() {
-    var onInit = [];
-};
-
 EditBookMonacoEditor.prototype.init = function() {
     this.editor = monaco.editor.create(this.elem);
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
+    this.editor.addCommand(
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
     this.editor.updateOptions({'theme': 'vs-dark'});
     this.editor.onDidFocusEditor(() => {
-        NotifyFocusChanged(this);
+        notifyFocusChanged(this);
     });
 };

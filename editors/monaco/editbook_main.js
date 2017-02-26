@@ -56,7 +56,7 @@ function EditBook_NewEditor(elem, ws) {
         open: (path, data, abspath) => {
             menu.setPath(path);
             g_current.open(abspath, data);
-        }
+        },
     };
 }
 
@@ -123,20 +123,20 @@ function MonacoMenu(holder) {
 // 'This is the test area.',
 '</div>'
     );
-    holder.html(builder.join(""));
+    holder.html(builder.join(''));
 
-    var main_div = document.getElementById("mainDiv"); // holder.find("#mainDiv");
+    var main_div = document.getElementById('mainDiv'); // holder.find("#mainDiv");
     this.main_div = main_div;
 
-    var sub_div = document.createElement("div");
-    sub_div.style.cssText = "position: absolute; top:0px; bottom:0px";
+    var sub_div = document.createElement('div');
+    sub_div.style.cssText = 'position: absolute; top:0px; bottom:0px';
     sub_div.style.overflow = 'hidden';
-    sub_div.id = "subDiv";
+    sub_div.id = 'subDiv';
     this.sub_div = sub_div;
 
     var menu = this;
 
-    $("#saveButton").click(function() {
+    $('#saveButton').click(function() {
         menu.save();
     }
     );
@@ -144,10 +144,10 @@ function MonacoMenu(holder) {
     function resize(elem, left, top, width) {
         elem.style.width = width;
         elem.style.top = top;
-        elem.style.left = left + "px";
+        elem.style.left = left + 'px';
     }
 
-    $("#split").change(function() {
+    $('#split').change(function() {
         if(this.checked) {
             // split
             holder.append(sub_div);
@@ -156,36 +156,34 @@ function MonacoMenu(holder) {
 
             var editorWidth = width / 2;
 
-            resize(main_div, 0, main_div.offsetTop, "50%");
-            resize(sub_div, editorWidth, main_div.offsetTop, "50%");
+            resize(main_div, 0, main_div.offsetTop, '50%');
+            resize(sub_div, editorWidth, main_div.offsetTop, '50%');
 
             menu.split_window(main_div, sub_div);
-
         } else {
             // unsplit
 
             var width = main_div.clientWidth;
 
             $(sub_div).remove();
-            resize(main_div, 0, main_div.top, "100%");
+            resize(main_div, 0, main_div.top, '100%');
 
             menu.unsplit_window(main_div);
         }
     });
-
 }
 
 MonacoMenu.prototype.getPath = () => {
-    return $("#pathSpan").text();
-}
+    return $('#pathSpan').text();
+};
 
 MonacoMenu.prototype.setPath = (path) => {
-    return $("#pathSpan").text(path);
-}
+    return $('#pathSpan').text(path);
+};
 
 MonacoMenu.prototype.setEnabled = (isEnable) => {
-    $("#saveButton").prop('disabled', !isEnable);
-}
+    $('#saveButton').prop('disabled', !isEnable);
+};
 
 function EditBookMonacoEditor(elem) {
     this.elem = elem;
@@ -212,7 +210,7 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         model = monaco.editor.createModel(data, null, uri);
         this.dirty = false;
         this.savedVersionId = model.getAlternativeVersionId();
-        
+
         NotifyModifyStatusChanged();
         this.lservice = {onChange: (a, b)=>{}};
         model.onDidChangeContent((change) => {
@@ -220,11 +218,11 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
             this.dirty = this.savedVersionId !== model.getAlternativeVersionId();
             if(prev_dirty != this.dirty) {
                 NotifyModifyStatusChanged();
-            } 
+            }
 
             this.lservice.onChange(model, change);
         });
-        
+
 
         if (this._services === null) {
             console.warn('A file is opened before the language services are'
@@ -242,7 +240,6 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
 
     this.editor.setModel(model);
     this.path = path;
-
 };
 
 EditBookMonacoEditor.prototype.save = function() {
@@ -264,7 +261,7 @@ EditBookMonacoEditor.prototype.save = function() {
         this.dirty = false;
         NotifyModifyStatusChanged();
 
-        toastr.info("saved");
+        toastr.info('saved');
         if (svc) {
             svc.didSave(model);
         }
@@ -273,12 +270,13 @@ EditBookMonacoEditor.prototype.save = function() {
 
 EditBookMonacoEditor.initializeModule = function() {
     var onInit = [];
-
 };
 
 EditBookMonacoEditor.prototype.init = function() {
     this.editor = monaco.editor.create(this.elem);
     this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
-   this.editor.updateOptions({ 'theme' : 'vs-dark' });
-    this.editor.onDidFocusEditor(() => { NotifyFocusChanged(this); });
+    this.editor.updateOptions({'theme': 'vs-dark'});
+    this.editor.onDidFocusEditor(() => {
+        NotifyFocusChanged(this);
+    });
 };

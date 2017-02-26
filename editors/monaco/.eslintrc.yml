@@ -6,5 +6,8 @@ env:
 rules:
   # TODO: camelcase should be added after the refactoring.
   camelcase: off
+  # TODO: require-jsdoc should be added after the refactoring.
+  require-jsdoc: off
+  prefer-spread: off
   linebreak-style: off
   no-var: off

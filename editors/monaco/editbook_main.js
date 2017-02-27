@@ -59,7 +59,7 @@ EditBook.newEditor = function(elem, ws) {
             gCurrent.open(abspath, data);
         },
     };
-}
+};
 
 function initializeModule() {
     function onAmdEnabled() {

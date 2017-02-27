@@ -1,63 +1,67 @@
 'use strict';
 
-var g_current;
-var g_menu;
+var gCurrent;
+var gMenu;
 
-function NotifyModifyStatusChanged() {
-    g_menu.setEnabled(g_current.dirty);
+function notifyModifyStatusChanged() {
+    gMenu.setEnabled(gCurrent.dirty);
 }
 
-function EditBook_NewEditor(elem, ws) {
+// eslint-disable-next-line no-unused-vars
+EditBook.newEditor = function(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);
 
-    var main_editor =  new EditBookMonacoEditor(menu.main_div);
-    var sub_editor = new EditBookMonacoEditor(menu.sub_div);
+    var mainEditor = new EditBookMonacoEditor(menu.mainDiv);
+    var subEditor = new EditBookMonacoEditor(menu.subDiv);
 
-    var onInit = InitializeModule();
-    onInit.push(() => { main_editor.init(); });
-    onInit.push(() => { sub_editor.init(); });
+    var onInit = initializeModule();
+    onInit.push(() => mainEditor.init());
+    onInit.push(() => subEditor.init());
     onInit.push((_, languageservice) => {
-        InitializeLanguageServices(ws, languageservice, function(services) {
-            main_editor.registerLangServices(services);
-            sub_editor.registerLangServices(services);
+        initializeLanguageServices(ws, languageservice, function(services) {
+            mainEditor.registerLangServices(services);
+            subEditor.registerLangServices(services);
         });
     });
 
-    g_current = main_editor;
-    g_menu = menu;
+    gCurrent = mainEditor;
+    gMenu = menu;
 
-    menu.save = () => g_current.save();
-    menu.split_window = (main_div, sub_div) => { main_editor.editor.layout(); sub_editor.editor.layout();
-         sub_editor.editor.setModel(main_editor.editor.getModel());
-         sub_editor.path = main_editor.path;
-         };
-    menu.unsplit_window = (main_div) => {
-        if(g_current != main_editor) {
+    menu.save = () => gCurrent.save();
+    menu.splitWindow = (mainDiv, subDiv) => {
+        mainEditor.editor.layout();
+        subEditor.editor.layout();
+        subEditor.editor.setModel(mainEditor.editor.getModel());
+        subEditor.path = mainEditor.path;
+    };
+    menu.unsplitWindow = (mainDiv) => {
+        if(gCurrent != mainEditor) {
             // we want to detach sub_editor from div and re-attach to main_div.
-            // But I don't know how to do it. So just set model and path from sub_editor.
-            // This lost scroll position information, etc. May be just restore scroll position is better than now.
+            // But I don't know how to do it. So just set model and path
+            // from sub_editor. This lost scroll position information, etc.
+            // May be just restore scroll position is better than now.
 
             // var state = g_current.editor.saveViewState();
 
-            main_editor.editor.setModel(g_current.editor.getModel());
-            main_editor.path = g_current.path;
+            mainEditor.editor.setModel(gCurrent.editor.getModel());
+            mainEditor.path = gCurrent.path;
 
             // main_editor.restoreViewState(state);
         }
-        main_editor.editor.layout();
+        mainEditor.editor.layout();
     };
 
     return {
         init: ()=>{},
         open: (path, data, abspath) => {
             menu.setPath(path);
-            g_current.open(abspath, data);
-        }
+            gCurrent.open(abspath, data);
+        },
     };
-}
+};
 
-function InitializeModule() {
+function initializeModule() {
     function onAmdEnabled() {
         require.config({paths:
             {vs: '/editor/vs', languageservice: '/editor/languageservice'}});
@@ -81,7 +85,7 @@ function InitializeModule() {
     return onInit;
 }
 
-function InitializeLanguageServices(ws, languageservice, callback) {
+function initializeLanguageServices(ws, languageservice, callback) {
     function onLanguageServiceList(ev) {
         var data = ev.data;
         if (data[0] !== '3') {
@@ -101,39 +105,39 @@ function InitializeLanguageServices(ws, languageservice, callback) {
     ws.send('3');
 }
 
-function NotifyFocusChanged(editor) {
-    g_current = editor;
-    g_menu.setPath(editor.path);
+function notifyFocusChanged(editor) {
+    gCurrent = editor;
+    gMenu.setPath(editor.path);
 }
 
 // need to set
 // - mehu.save()
-// - menu.split_window = (main_div, sub_div) =>{}
-// - menu.unsplit_window = (main_div) => {}
+// - menu.splitWindow = (main_div, sub_div) =>{}
+// - menu.unsplitWindow = (main_div) => {}
 function MonacoMenu(holder) {
     var builder = [];
     builder.push(
-'<button type="button" id="saveButton">Save</button> -- <input type="checkbox" id="split">split<br>',
+'<button type="button" id="saveButton">Save</button> ' +
+'-- <input type="checkbox" id="split">split<br>',
 'path: <span id="pathSpan"></span><br>',
-// '<div id="mainDiv" style="position:absolute;top:50;left:0;bottom:0;right:0">',
-'<div id="mainDiv" style="position:absolute;top:50;left:0;bottom:0;width:100%;overflow:hidden">',
-// 'This is the test area.',
+'<div id="mainDiv" ' +
+'style="position:absolute;top:50;left:0;bottom:0;width:100%;overflow:hidden">',
 '</div>'
     );
-    holder.html(builder.join(""));
+    holder.html(builder.join(''));
 
-    var main_div = document.getElementById("mainDiv"); // holder.find("#mainDiv");
-    this.main_div = main_div;
+    var mainDiv = document.getElementById('mainDiv');
+    this.mainDiv = mainDiv;
 
-    var sub_div = document.createElement("div");
-    sub_div.style.cssText = "position: absolute; top:0px; bottom:0px";
-    sub_div.style.overflow = 'hidden';
-    sub_div.id = "subDiv";
-    this.sub_div = sub_div;
+    var subDiv = document.createElement('div');
+    subDiv.style.cssText = 'position: absolute; top:0px; bottom:0px';
+    subDiv.style.overflow = 'hidden';
+    subDiv.id = 'subDiv';
+    this.subDiv = subDiv;
 
     var menu = this;
 
-    $("#saveButton").click(function() {
+    $('#saveButton').click(function() {
         menu.save();
     }
     );
@@ -141,48 +145,47 @@ function MonacoMenu(holder) {
     function resize(elem, left, top, width) {
         elem.style.width = width;
         elem.style.top = top;
-        elem.style.left = left + "px";
+        elem.style.left = left + 'px';
     }
 
-    $("#split").change(function() {
+    $('#split').change(function() {
+        // eslint-disable-next-line no-invalid-this
         if(this.checked) {
             // split
-            holder.append(sub_div);
+            holder.append(subDiv);
 
-            var width = main_div.clientWidth;
+            var width = mainDiv.clientWidth;
 
             var editorWidth = width / 2;
 
-            resize(main_div, 0, main_div.offsetTop, "50%");
-            resize(sub_div, editorWidth, main_div.offsetTop, "50%");
+            resize(mainDiv, 0, mainDiv.offsetTop, '50%');
+            resize(subDiv, editorWidth, mmainDivoffsetTop, '50%');
 
-            menu.split_window(main_div, sub_div);
-
+            menu.splitWindow(mainDiv, subDiv);
         } else {
             // unsplit
 
-            var width = main_div.clientWidth;
+            var width = mainDiv.clientWidth;
 
-            $(sub_div).remove();
-            resize(main_div, 0, main_div.top, "100%");
+            $(subDiv).remove();
+            resize(mainDiv, 0, mainDiv.top, '100%');
 
-            menu.unsplit_window(main_div);
+            menu.unsplitWindow(mainDiv);
         }
     });
-
 }
 
 MonacoMenu.prototype.getPath = () => {
-    return $("#pathSpan").text();
-}
+    return $('#pathSpan').text();
+};
 
 MonacoMenu.prototype.setPath = (path) => {
-    return $("#pathSpan").text(path);
-}
+    return $('#pathSpan').text(path);
+};
 
 MonacoMenu.prototype.setEnabled = (isEnable) => {
-    $("#saveButton").prop('disabled', !isEnable);
-}
+    $('#saveButton').prop('disabled', !isEnable);
+};
 
 function EditBookMonacoEditor(elem) {
     this.elem = elem;
@@ -209,19 +212,20 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         model = monaco.editor.createModel(data, null, uri);
         this.dirty = false;
         this.savedVersionId = model.getAlternativeVersionId();
-        
-        NotifyModifyStatusChanged();
+
+        notifyModifyStatusChanged();
         this.lservice = {onChange: (a, b)=>{}};
         model.onDidChangeContent((change) => {
-            var prev_dirty = this.dirty;
-            this.dirty = this.savedVersionId !== model.getAlternativeVersionId();
-            if(prev_dirty != this.dirty) {
-                NotifyModifyStatusChanged();
-            } 
+            var prevDirty = this.dirty;
+            this.dirty = (
+                this.savedVersionId !== model.getAlternativeVersionId());
+            if(prevDirty != this.dirty) {
+                notifyModifyStatusChanged();
+            }
 
             this.lservice.onChange(model, change);
         });
-        
+
 
         if (this._services === null) {
             console.warn('A file is opened before the language services are'
@@ -239,7 +243,6 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
 
     this.editor.setModel(model);
     this.path = path;
-
 };
 
 EditBookMonacoEditor.prototype.save = function() {
@@ -256,26 +259,25 @@ EditBookMonacoEditor.prototype.save = function() {
         svc.willSave(model);
     }
     // TODO: should use willSaveWaitUntil?
-    EditBook_SaveFile(this.path, model.getValue(), () => {
+    // eslint-disable-next-line new-cap
+    EditBook.saveFile(this.path, model.getValue(), () => {
         this.savedVersionId = model.getAlternativeVersionId();
         this.dirty = false;
-        NotifyModifyStatusChanged();
+        notifyModifyStatusChanged();
 
-        toastr.info("saved");
+        toastr.info('saved');
         if (svc) {
             svc.didSave(model);
         }
     });
 };
 
-EditBookMonacoEditor.initializeModule = function() {
-    var onInit = [];
-
-};
-
 EditBookMonacoEditor.prototype.init = function() {
     this.editor = monaco.editor.create(this.elem);
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
-   this.editor.updateOptions({ 'theme' : 'vs-dark' });
-    this.editor.onDidFocusEditor(() => { NotifyFocusChanged(this); });
+    this.editor.addCommand(
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
+    this.editor.updateOptions({'theme': 'vs-dark'});
+    this.editor.onDidFocusEditor(() => {
+        notifyFocusChanged(this);
+    });
 };

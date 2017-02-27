@@ -4,4 +4,9 @@ env:
   es6: true
 
 rules:
+  # TODO: require-jsdoc should be added after the refactoring.
+  require-jsdoc: off
+  prefer-spread: off
+  prefer-rest-params: off
   linebreak-style: off
+  no-var: off

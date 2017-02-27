@@ -6,7 +6,9 @@
 <script type="text/javascript">
 'use strict';
 
-function EditBook_SaveFile(path, data, ondone) {
+var EditBook = {};
+
+EditBook.saveFile = function(path, data, ondone) {
     $.post("/save/", {path: path, data:data})
      .done(ondone);
 }
@@ -20,8 +22,8 @@ $(function() {
     openWs();
 });
 
-var g_heartBeat;
-var g_editor;
+var gHeartBeat;
+var gEditor;
 
 function openWs() {
     // var url = (httpsEnabled ? 'wss://' : 'ws://') + window.location.host + window.location.pathname + 'ws';
@@ -29,10 +31,10 @@ function openWs() {
 
     var ws = new WebSocket(url, ["editbook"]);
     ws.onopen = function(event) {
-        g_heartBeat = setInterval(onHeartBeat, 15*1000, ws);
+        gHeartBeat = setInterval(onHeartBeat, 15*1000, ws);
 
-        g_editor = EditBook_NewEditor($("#editorPanel"), ws)
-        g_editor.init();
+        gEditor = EditBook.newEditor($("#editorPanel"), ws)
+        gEditor.init();
     };
 
     ws.onmessage = function(event) {
@@ -40,7 +42,7 @@ function openWs() {
         switch(event.data[0]) {
         case '0':
             var opcmd = JSON.parse(data);
-            g_editor.open(opcmd.path, opcmd.data, opcmd.abspath);
+            gEditor.open(opcmd.path, opcmd.data, opcmd.abspath);
             break;
         case '1':
             // pong

@@ -11,7 +11,6 @@ function notifyModifyStatusChanged() {
 EditBook.newEditor = function(elem, ws) {
     document.body.style.margin = '0';
     var menu = new MonacoMenu(elem);
-
     var mainEditor = new EditBookMonacoEditor(menu.mainDiv);
     var subEditor = new EditBookMonacoEditor(menu.subDiv);
 
@@ -159,7 +158,7 @@ function MonacoMenu(holder) {
             var editorWidth = width / 2;
 
             resize(mainDiv, 0, mainDiv.offsetTop, '50%');
-            resize(subDiv, editorWidth, mmainDivoffsetTop, '50%');
+            resize(subDiv, editorWidth, mainDiv.offsetTop, '50%');
 
             menu.splitWindow(mainDiv, subDiv);
         } else {

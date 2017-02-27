@@ -27,6 +27,15 @@ EditBook.newEditor = function(elem, ws) {
     gCurrent = mainEditor;
     gMenu = menu;
 
+    $(window).resize(()=> {
+        if(menu.isSplit()) {
+            mainEditor.editor.layout();
+            subEditor.editor.layout();
+        } else {
+            mainEditor.editor.layout();
+        }
+    });
+
     menu.save = () => gCurrent.save();
     menu.splitWindow = (mainDiv, subDiv) => {
         mainEditor.editor.layout();
@@ -184,6 +193,10 @@ MonacoMenu.prototype.setPath = (path) => {
 
 MonacoMenu.prototype.setEnabled = (isEnable) => {
     $('#saveButton').prop('disabled', !isEnable);
+};
+
+MonacoMenu.prototype.isSplit = () => {
+    return $('#split').attr('checked');
 };
 
 function EditBookMonacoEditor(elem) {

@@ -216,7 +216,7 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
         console.warn('editor is not loaded yet');
         return;
     }
-    var uri = monaco.Uri.from({scheme: 'file', path: path});
+    var uri = monaco.Uri.file(path);
     var model = monaco.editor.getModel(uri);
     if (!model) {
         // second parameter is language -- which is null for

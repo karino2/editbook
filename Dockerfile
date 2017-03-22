@@ -1,11 +1,10 @@
 FROM golang:1.7.5 
-run go get github.com/karino2/editbook
-run go get github.com/sourcegraph/go-langserver/langserver
-run cd /go/src/github.com/sourcegraph/go-langserver/langserver/cmd/langserver-go && go install
-run apt-get update
-run apt-get upgrade -y
-run apt-get install --reinstall tar
-run apt-get install xz-utils
+RUN go get github.com/sourcegraph/go-langserver/langserver
+RUN cd /go/src/github.com/sourcegraph/go-langserver/ && go install
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install --reinstall tar
+RUN apt-get install xz-utils
 RUN set -ex \
   && for key in \
     9554F04D7259F04124DE6B476D5A82AC7E37093B \
@@ -28,10 +27,14 @@ RUN curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-
   && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
   && rm "node-v$NODE_VERSION-linux-x64.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
   && ln -s /usr/local/bin/node /usr/local/bin/nodejs
-run npm -g install typescript
-run mkdir -p /go/src/github.com/karino2/editbook
-workdir /go/src/github.com/karino2/editbook
-copy . /go/src/github.com/karino2/editbook
-run go install
-entrypoint ["editbook"]
+RUN npm -g install typescript
+# to retrieve dependent package.
+RUN go get github.com/karino2/editbook
+RUN rm -rf /go/src/github.com/karino2/editbook
+#
+# RUN mkdir -p /go/src/github.com/karino2/editbook
+# workdir /go/src/github.com/karino2/editbook
+# copy . /go/src/github.com/karino2/editbook
+# RUN go install
+# entrypoint ["editbook"]
 expose 5123 5124

@@ -1,8 +1,9 @@
 {
   "go": {
-    "commands": ["langserver-go"],
+    "commands": ["go-langserver"],
     "protocol": "LS"
   },
+  "javascript": {"commands": ["tsserver"], "protocol": "TS"},
   "python": {
     "commands": ["pyls"],
     "protocol": "LS"

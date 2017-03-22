@@ -3,8 +3,8 @@ package langservice
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -40,7 +40,11 @@ func findRootPathGo() string {
 	if err != nil {
 		return ""
 	}
-	return path.Join(gopath, "src")
+	path := filepath.ToSlash(filepath.Join(gopath, "src"))
+	if strings.HasPrefix(path, "/") {
+		return path
+	}
+	return "/" + path
 }
 
 func DefaultRootPathFinder() string {

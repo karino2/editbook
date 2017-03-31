@@ -211,6 +211,26 @@ EditBookMonacoEditor.prototype.registerLangServices = function(services) {
     this._services = services;
 };
 
+function getExt(str) {
+    var dot = str.lastIndexOf(".");
+
+    if(dot == -1)
+        return "";
+    return str.substring(dot+1);
+}
+
+var langModeMap = {
+    "re": "markdown"
+};
+
+function lookupLanguageMode(path) {
+    var ext = getExt(path);
+    if(ext in langModeMap) {
+        return langModeMap[ext];
+    }
+    return null;  // null for auto detection
+}
+
 EditBookMonacoEditor.prototype.open = function(path, data) {
     if (!this.editor) {
         console.warn('editor is not loaded yet');
@@ -219,9 +239,8 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
     var uri = monaco.Uri.file(path);
     var model = monaco.editor.getModel(uri);
     if (!model) {
-        // second parameter is language -- which is null for
-        // auto detection.
-        model = monaco.editor.createModel(data, null, uri);
+        var lang = lookupLanguageMode(path);
+        model = monaco.editor.createModel(data, lang, uri);
         this.dirty = false;
         this.savedVersionId = model.getAlternativeVersionId();
 

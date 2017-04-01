@@ -8,9 +8,8 @@ function notifyModifyStatusChanged() {
 }
 
 // eslint-disable-next-line no-unused-vars
-EditBook.newEditor = function(elem, ws) {
-    document.body.style.margin = '0';
-    var menu = new MonacoMenu(elem);
+EditBook.newEditor = function(ws) {
+    var menu = new MonacoMenu();
     var mainEditor = new EditBookMonacoEditor(menu.mainDiv);
     var subEditor = new EditBookMonacoEditor(menu.subDiv);
 
@@ -122,77 +121,41 @@ function notifyFocusChanged(editor) {
 // - mehu.save()
 // - menu.splitWindow = (main_div, sub_div) =>{}
 // - menu.unsplitWindow = (main_div) => {}
-function MonacoMenu(holder) {
-    var builder = [];
-    builder.push(
-'<button type="button" id="saveButton">Save</button> ' +
-'-- <input type="checkbox" id="split">split<br>',
-'path: <span id="pathSpan"></span><br>',
-'<div id="mainDiv" ' +
-'style="position:absolute;top:50;left:0;bottom:0;width:100%;overflow:hidden">',
-'</div>'
-    );
-    holder.html(builder.join(''));
-
-    var mainDiv = document.getElementById('mainDiv');
-    this.mainDiv = mainDiv;
-
-    var subDiv = document.createElement('div');
-    subDiv.style.cssText = 'position: absolute; top:0px; bottom:0px';
-    subDiv.style.overflow = 'hidden';
-    subDiv.id = 'subDiv';
-    this.subDiv = subDiv;
-
+function MonacoMenu() {
+    var mainDiv = this.mainDiv = document.getElementById('main-div');
+    var subDiv = this.subDiv = document.getElementById('sub-div');
     var menu = this;
 
-    $('#saveButton').click(function() {
+    $('#save-button').click(function() {
         menu.save();
-    }
-    );
-
-    function resize(elem, left, top, width) {
-        elem.style.width = width;
-        elem.style.top = top;
-        elem.style.left = left + 'px';
-    }
+    });
 
     $('#split').change(function() {
         // eslint-disable-next-line no-invalid-this
         if(this.checked) {
             // split
-            holder.append(subDiv);
-
-            var width = mainDiv.clientWidth;
-
-            var editorWidth = width / 2;
-
-            resize(mainDiv, 0, mainDiv.offsetTop, '50%');
-            resize(subDiv, editorWidth, mainDiv.offsetTop, '50%');
-
+            mainDiv.style.width = '50%';
+            subDiv.style.visibility = 'visible';
             menu.splitWindow(mainDiv, subDiv);
         } else {
             // unsplit
-
-            var width = mainDiv.clientWidth;
-
-            $(subDiv).remove();
-            resize(mainDiv, 0, mainDiv.top, '100%');
-
+            subDiv.style.visibility = 'hidden';
+            mainDiv.style.width = '100%';
             menu.unsplitWindow(mainDiv);
         }
     });
 }
 
 MonacoMenu.prototype.getPath = () => {
-    return $('#pathSpan').text();
+    return $('#path-span').text();
 };
 
 MonacoMenu.prototype.setPath = (path) => {
-    return $('#pathSpan').text(path);
+    return $('#path-span').text(path);
 };
 
 MonacoMenu.prototype.setEnabled = (isEnable) => {
-    $('#saveButton').prop('disabled', !isEnable);
+    $('#save-button').prop('disabled', !isEnable);
 };
 
 MonacoMenu.prototype.isSplit = () => {
@@ -212,16 +175,14 @@ EditBookMonacoEditor.prototype.registerLangServices = function(services) {
 };
 
 function getExt(str) {
-    var dot = str.lastIndexOf(".");
+    var dot = str.lastIndexOf('.');
 
     if(dot == -1)
-        return "";
+        return '';
     return str.substring(dot+1);
 }
 
-var langModeMap = {
-    "re": "markdown"
-};
+var langModeMap = {'re': 'markdown'};
 
 function lookupLanguageMode(path) {
     var ext = getExt(path);

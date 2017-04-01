@@ -1,0 +1,14 @@
+#menu {
+    height: 50px;
+}
+#editor-panel {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 50px);
+}
+.editor-div {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    overflow: hidden;
+}

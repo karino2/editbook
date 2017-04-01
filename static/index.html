@@ -33,7 +33,7 @@ function openWs() {
     ws.onopen = function(event) {
         gHeartBeat = setInterval(onHeartBeat, 15*1000, ws);
 
-        gEditor = EditBook.newEditor($("#editorPanel"), ws)
+        gEditor = EditBook.newEditor(ws)
         gEditor.init();
     };
 
@@ -64,18 +64,18 @@ function onDisconnect() {
     alert("disconnect!");
 }
 </script>
+<link rel="stylesheet" href="main.css"/>
 </head>
-<body>
+<body style="margin:0">
 
-<div id="editorPanel"></div>
-
-<!--
-<button type="button" id="saveButton">Save</button><br>
-path: <span id="pathSpan"></span><br>
-<textarea id="editorTextArea" cols="100" rows="40">
-This is the test area.
-</textarea>
--->
+<div id="menu">
+    <button type="button" id="save-button">Save</button> -- <input type="checkbox" id="split">split<br>
+    path: <span id="path-span"></span>
+</div>
+<div id="editor-panel">
+    <div id="main-div" class="editor-div" style="width:100%"></div>
+    <div id="sub-div" class="editor-div" style="left:50%;width:50%;visibility:hidden"></div>
+</div>
 
 </body>
 </html>

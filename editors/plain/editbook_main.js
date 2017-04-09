@@ -1,8 +1,8 @@
 'use strict';
 
-function EditBook_NewEditor(div, ws) {
+EditBook.newEditor = function(ws) {
     return {
-        init: function() { initEditor(div); },
+        init: function() { initEditor(); },
         open: function(path, data) { open(path, data); }
     }
 }
@@ -10,25 +10,21 @@ function EditBook_NewEditor(div, ws) {
 function open(path, data) {
     console.log("editor.open called", path);
     
-    $("#pathSpan").text(path)
+    $("#path-span").text(path)
     $("#editorTextArea").val(data)
     console.log("open:" + path)
 }
 
-function initEditor(div) {
-    var builder = [];
-    builder.push(
-'<button type="button" id="saveButton">Save</button><br>',
-'path: <span id="pathSpan"></span><br>',
-'<textarea id="editorTextArea" cols="100" rows="40">',
-'This is the test area.',
-'</textarea>'
+function initEditor() {
+    $('#main-div').html(
+        '<textarea id="editor-textarea" cols="100" rows="40">' +
+        'This is the test area.' +
+        '</textarea>'
     );
-    div.html(builder.join(""));
-
-    $("#saveButton").click(function() {
-        EditBook_SaveFile($("#pathSpan").text(),
-                $("#editorTextArea").val(),
+    $('#split').prop('disabled', true);
+    $("#save-button").click(function() {
+        EditBook.saveFile($("#path-span").text(),
+                $("#editor-textarea").val(),
                 function(){alert("saved")}
                 );
     });

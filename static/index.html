@@ -26,8 +26,8 @@ var gHeartBeat;
 var gEditor;
 
 function openWs() {
-    // var url = (httpsEnabled ? 'wss://' : 'ws://') + window.location.host + window.location.pathname + 'ws';
-    var url ='ws://' + window.location.host + '/ws';
+    var scheme = window.location.href.startsWith('https:') ? 'wss' : 'ws';
+    var url = scheme + '://' + window.location.host + '/ws';
 
     var ws = new WebSocket(url, ["editbook"]);
     ws.onopen = function(event) {

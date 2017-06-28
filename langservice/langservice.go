@@ -33,9 +33,11 @@ type commandlineService struct {
 	rclose io.Closer
 	scanner *bufio.Scanner
 	cmd *exec.Cmd
+	closing bool
 }
 
 func (cs *commandlineService) Close() error {
+	cs.closing = true
 	err := cs.w.Close()
 	if err != nil {
 		return err
@@ -88,7 +90,14 @@ func scanMessages(data []byte, atEOF bool) (advance int, token []byte, err error
 
 func (s *languageServerService) ReadMessage() ([]byte, error) {
 	if !s.scanner.Scan() {
-		return nil, s.scanner.Err()
+		err := s.scanner.Err()
+		if err == nil {
+			err = io.EOF
+		}
+		return nil, err
+	}
+	if len(s.scanner.Bytes()) == 0 {
+		return nil, fmt.Errorf("no data available")
 	}
 	d := s.scanner.Bytes()
 	return d, nil
@@ -136,32 +145,43 @@ func startCommandlineService(commands []string) (*commandlineService, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmderr, err := cmd.StderrPipe()
+	cmdErr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
 	}
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	go func() {
-		// This will cause *lots* of output -- probably
-		// better to allow only with "developer mode".
-		return
-		cmderrio := bufio.NewScanner(cmderr)
-		defer cmderr.Close()
-		for {
-			if !cmderrio.Scan() {
-				break
-			}
-			println(cmderrio.Text())
-		}
-	}()
-	return &commandlineService{
+	cs := &commandlineService{
 		w:              cmdIn,
 		rclose:         stdout,
 		scanner:        cmdOut,
 		cmd:            cmd,
-	}, nil
+	}
+	errBuf := make([]string, 0, 100)
+	go func() {
+		errReader := bufio.NewScanner(cmdErr)
+		for {
+			if !errReader.Scan() {
+				return
+			}
+			errBuf = append(errBuf, errReader.Text())
+			if len(errBuf) > 100 {
+				errBuf = errBuf[1:]
+			}
+		}
+	}()
+	go func() {
+		err := cmd.Wait()
+		if cs.closing {
+			return
+		}
+		if err != nil {
+			log.Printf("unexpected command exit: %v", err)
+			log.Printf("errors: \n%s", strings.Join(errBuf, "\n"))
+		}
+	}()
+	return cs, nil
 }
 
 func StartLanguageServer(lang string, config Config) (LangService, error) {

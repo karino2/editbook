@@ -65,6 +65,10 @@ EditBook.newEditor = function(ws) {
             menu.setPath(path);
             gCurrent.open(abspath, data);
         },
+        reconnectWs: (ws) => {
+            // services is shared with main and sub.
+            reconnectToLanguageServices(ws, gCurrent._services);
+        }
     };
 };
 
@@ -100,8 +104,8 @@ function initializeLanguageServices(ws, languageservice, callback) {
         }
         var handler = new languageservice.WsHandler(ws);
         var services = {};
-	var msg = data.slice(1);
-	if(msg != "") {
+        var msg = data.slice(1);
+        if(msg != "") {
             JSON.parse(msg).forEach(function(params) {
                 services[params.lang] =
                     languageservice.registerLanguageService(params, handler);
@@ -113,6 +117,10 @@ function initializeLanguageServices(ws, languageservice, callback) {
     ws.addEventListener('message', onLanguageServiceList);
     // requesting language list.
     ws.send('3');
+}
+
+function reconnectToLanguageServices(ws, services) {
+    Object.values(services).forEach(svc=> svc._wsHandler.bindToWs(ws));
 }
 
 function notifyFocusChanged(editor) {

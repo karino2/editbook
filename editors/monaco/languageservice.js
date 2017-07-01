@@ -944,8 +944,12 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     function WsHandler(ws) {
-        this._ws = ws;
         this._clients = {};
+        this.bindToWs(ws);
+    }
+
+    WsHandler.prototype.bindToWs = function(ws) {
+        this._ws = ws;
         ws.addEventListener('message', (ev) => {
             var data = ev.data;
             var m = data.match(/^2([a-zA-Z0-9_-]+)/);

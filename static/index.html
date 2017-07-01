@@ -25,16 +25,14 @@ $(function() {
 var gHeartBeat;
 var gEditor;
 
-function openWs() {
+
+function openWsWithCallback(onopencallback) {
     var scheme = window.location.href.startsWith('https:') ? 'wss' : 'ws';
     var url = scheme + '://' + window.location.host + '/ws';
 
     var ws = new WebSocket(url, ["editbook"]);
     ws.onopen = function(event) {
-        gHeartBeat = setInterval(onHeartBeat, 15*1000, ws);
-
-        gEditor = EditBook.newEditor(ws)
-        gEditor.init();
+        onopencallback(ws, event);
     };
 
     ws.onmessage = function(event) {
@@ -52,8 +50,19 @@ function openWs() {
 
     ws.onclose = function(event) {
         onDisconnect();
-        clearInterval(heartBeat);
+        clearInterval(gHeartBeat);
     };
+
+}
+
+function openWs() {
+    openWsWithCallback((ws, ev)=>{
+        gHeartBeat = setInterval(onHeartBeat, 15*1000, ws);
+
+        gEditor = EditBook.newEditor(ws)
+        gEditor.init();
+    });
+    
 }
 
 function onHeartBeat(ws) {
@@ -61,8 +70,29 @@ function onHeartBeat(ws) {
 }
 
 function onDisconnect() {
-    alert("disconnect!");
+    var span = $('#status-span');
+    span.removeClass("status-none");
+    span.removeClass("status-caution");
+    span.addClass("status-warning");
+    span.text("disconnnected");
 }
+
+function onStatusSpanClicked() {
+    var span = $('#status-span');
+    if(!span.hasClass('status-warning')) { return ;}
+    span.removeClass("status-warning");
+    span.addClass("status-caution");
+    span.text("connecting...");
+
+    openWsWithCallback((ws, ev)=>{
+        gEditor.reconnectWs(ws);
+ 
+        gHeartBeat = setInterval(onHeartBeat, 15*1000, ws);        
+        span.removeClass('status-caution');
+        span.addClass("status-none")
+    });
+}
+
 </script>
 <link rel="stylesheet" href="main.css"/>
 </head>
@@ -71,6 +101,7 @@ function onDisconnect() {
 <div id="menu">
     <button type="button" id="save-button">Save</button> -- <input type="checkbox" id="split">split<br>
     path: <span id="path-span"></span>
+    <span id="status-span" class="status-none" onclick="onStatusSpanClicked()">disconnected</span>
 </div>
 <div id="editor-panel">
     <div id="main-div" class="editor-div" style="width:100%"></div>

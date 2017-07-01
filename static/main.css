@@ -1,5 +1,6 @@
 #menu {
     height: 50px;
+    width: 100%;
 }
 #editor-panel {
     position: relative;
@@ -11,4 +12,19 @@
     top: 0;
     height: 100%;
     overflow: hidden;
+}
+#status-span {
+    float: right;
+}
+
+span.status-warning {
+    background-color: #ffaaaa;
+}
+
+span.status-caution {
+    background-color: #ffff88;
+}
+
+span.status-none {
+    display: none;
 }

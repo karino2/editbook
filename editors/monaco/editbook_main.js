@@ -12,15 +12,23 @@ EditBook.newEditor = function(ws) {
     var menu = new MonacoMenu();
     var mainEditor = new EditBookMonacoEditor(menu.mainDiv);
     var subEditor = new EditBookMonacoEditor(menu.subDiv);
+    var languageServiceNS;
+
+    function connectToLanguageService(ws, languageservice, callback) {
+        initializeLanguageServices(ws, languageservice, function(services, lsns) {
+            mainEditor.registerLangServices(services);
+            subEditor.registerLangServices(services);
+
+            if(callback) callback();
+        });
+    }
 
     var onInit = initializeModule();
     onInit.push(() => mainEditor.init());
     onInit.push(() => subEditor.init());
     onInit.push((_, languageservice) => {
-        initializeLanguageServices(ws, languageservice, function(services) {
-            mainEditor.registerLangServices(services);
-            subEditor.registerLangServices(services);
-        });
+        languageServiceNS = languageservice;
+        connectToLanguageService(ws, languageservice);
     });
 
     gCurrent = mainEditor;
@@ -66,8 +74,18 @@ EditBook.newEditor = function(ws) {
             gCurrent.open(abspath, data);
         },
         reconnectWs: (ws) => {
-            // services is shared with main and sub.
-            reconnectToLanguageServices(ws, gCurrent._services);
+            const initedKeys = Object.entries(mainEditor._services).filter(pair=>pair[1]._initialized).map(pair=>pair[0]);
+
+            Object.values(mainEditor._services).forEach(svc => {svc._wsHandler = null; svc.dispose(); });
+
+            connectToLanguageService(ws, languageServiceNS,
+                ()=>{
+                    Object.entries(mainEditor._services).filter(pair=>initedKeys.includes(pair[0])).forEach(pair=>pair[1].init());
+
+                    mainEditor.bindLS(mainEditor.editor.getModel());
+                    subEditor.bindLS(subEditor.editor.getModel());
+                });
+
         }
     };
 };
@@ -112,15 +130,11 @@ function initializeLanguageServices(ws, languageservice, callback) {
             });
         }
         ws.removeEventListener('message', onLanguageServiceList);
-        callback(services);
+        callback(services, languageservice);
     }
     ws.addEventListener('message', onLanguageServiceList);
     // requesting language list.
     ws.send('3');
-}
-
-function reconnectToLanguageServices(ws, services) {
-    Object.values(services).forEach(svc=> svc._wsHandler.bindToWs(ws));
 }
 
 function notifyFocusChanged(editor) {
@@ -203,6 +217,15 @@ function lookupLanguageMode(path) {
     return null;  // null for auto detection
 }
 
+EditBookMonacoEditor.prototype.bindLS = function(model) {
+    var lang = model.getModeId();
+    if (lang in this._services) {
+        var svc = this._services[lang];
+        svc.onOpen(model);
+        this.lservice = svc;
+    }
+} 
+
 EditBookMonacoEditor.prototype.open = function(path, data) {
     if (!this.editor) {
         console.warn('editor is not loaded yet');
@@ -234,12 +257,7 @@ EditBookMonacoEditor.prototype.open = function(path, data) {
             console.warn('A file is opened before the language services are'
                 + ' fully loaded. Consider reloading & waiting a bit.');
         } else {
-            var lang = model.getModeId();
-            if (lang in this._services) {
-                var svc = this._services[lang];
-                svc.onOpen(model);
-                this.lservice = svc;
-            }
+            this.bindLS(model);
         }
     }
 

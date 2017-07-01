@@ -20,7 +20,17 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         // Remembers all notifications before it's fully initialized.
         this._notificationQueue = [];
 
+        this._disposables = [];
         this._responseWaiters = {};
+    }
+
+    function disposeAll(disposables){
+        while (disposables.length) {
+			var obj = disposables.pop();
+			if (obj) {
+				obj.dispose();
+			}
+        }        
     }
 
     LanguageClient.prototype.init = function() {
@@ -48,44 +58,44 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 this._notificationQueue = null;
             }, 0);
             if (capabilities.referencesProvider) {
-                monaco.languages.registerReferenceProvider(lang, this);
+                this._disposables.push(monaco.languages.registerReferenceProvider(lang, this));
             }
             if (capabilities.renameProvider) {
-                monaco.languages.registerRenameProvider(lang, this);
+                this._disposables.push(monaco.languages.registerRenameProvider(lang, this));
             }
             if (capabilities.signatureHelpProvider) {
                 this.signatureHelpTriggerCharacters =
                     capabilities.signatureHelpProvider.triggerCharacters || [];
-                monaco.languages.registerSignatureHelpProvider(lang, this);
+                this._disposables.push(monaco.languages.registerSignatureHelpProvider(lang, this));
             }
             if (capabilities.hoverProvider) {
-                monaco.languages.registerHoverProvider(lang, this);
+                this._disposables.push(monaco.languages.registerHoverProvider(lang, this));
             }
             if (capabilities.documentSymbolProvider) {
-                monaco.languages.registerDocumentSymbolProvider(lang, this);
+                this._disposables.push(monaco.languages.registerDocumentSymbolProvider(lang, this));
             }
             if (capabilities.documentHighlightProvider) {
-                monaco.languages.registerDocumentHighlightProvider(lang, this);
+                this._disposables.push(monaco.languages.registerDocumentHighlightProvider(lang, this));
             }
             if (capabilities.definitionProvider) {
-                monaco.languages.registerDefinitionProvider(lang, this);
+                this._disposables.push(monaco.languages.registerDefinitionProvider(lang, this));
             }
             if (capabilities.codeLensProvider) {
                 if (capabilities.codeLensProvider.resolveProvider) {
                     this.resolveCodeLens = this.resolveCodeLensImpl;
                 }
-                monaco.languages.registerCodeLensProvider(lang, this);
+                this._disposables.push(monaco.languages.registerCodeLensProvider(lang, this));
             }
             if (capabilities.codeActionProvider) {
-                monaco.languages.registerCodeActionProvider(lang, this);
+                this._disposables.push(monaco.languages.registerCodeActionProvider(lang, this));
             }
             if (capabilities.documentFormattingProvider) {
-                monaco.languages.registerDocumentFormattingEditProvider(
-                    lang, this);
+                this._disposables.push(monaco.languages.registerDocumentFormattingEditProvider(
+                    lang, this));
             }
             if (capabilities.documentRangeFormattingProvider) {
-                monaco.languages.registerDocumentRangeFormattingEditProvider(
-                    lang, this);
+                this._disposables.push(monaco.languages.registerDocumentRangeFormattingEditProvider(
+                    lang, this));
             }
             if (capabilities.documentOnTypeFormattingProvider) {
                 var opts = capabilities.documentOnTypeFormattingProvider;
@@ -95,14 +105,14 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                         this.autoFormatTriggerCharacters,
                         opts.moreTriggerCharacters);
                 }
-                monaco.languages.registerOnTypeFormattingEditProvider(
-                    lang, this);
+                this._disposables.push(monaco.languages.registerOnTypeFormattingEditProvider(
+                    lang, this));
             }
             if (capabilities.documentLinkProvider) {
                 if (capabilities.documentLinkProvider.resolveProvider) {
                     this.resolveLink = this.resolveLinkImpl;
                 }
-                monaco.languages.registerLinkProvider(lang, this);
+                this._disposables.push(monaco.languages.registerLinkProvider(lang, this));
             }
             if (capabilities.completionProvider) {
                 var opts = capabilities.completionProvider;
@@ -112,10 +122,15 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                 if (opts.triggerCharacters) {
                     this.triggerCharacters = opts.triggerCharacters;
                 }
-                monaco.languages.registerCompletionItemProvider(lang, this);
+                this._disposables.push(monaco.languages.registerCompletionItemProvider(lang, this));
             }
         });
     };
+
+    LanguageClient.prototype.dispose = function() {
+        disposeAll(this._disposables);
+        this._disposables = []
+    }
 
     LanguageClient.prototype.send = function(method, params, token, withId) {
         var msg = {
@@ -378,7 +393,6 @@ define('languageservice', ['vs/editor/editor.main'], function() {
                     return def.map(
                         (location) => this.locationToMonaco(location));
                 }
-                return def;
             });
     };
 
@@ -557,7 +571,14 @@ define('languageservice', ['vs/editor/editor.main'], function() {
         this._wsHandler = wsHandler;
         this._id = 0;
         this._responseWaiters = {};
+        this._disposables = [];
+        this._initialized = false;
         wsHandler.registerClient(lang, this);
+    }
+
+    TSClient.prototype.dispose = function() {
+        disposeAll(this._disposables);
+        this._disposables = []
     }
 
     TSClient.prototype.send = function(
@@ -621,18 +642,19 @@ define('languageservice', ['vs/editor/editor.main'], function() {
     };
 
     TSClient.prototype.init = function() {
-        monaco.languages.registerReferenceProvider(this._lang, this);
-        monaco.languages.registerRenameProvider(this._lang, this);
-        monaco.languages.registerSignatureHelpProvider(this._lang, this);
-        monaco.languages.registerHoverProvider(this._lang, this);
-        monaco.languages.registerDocumentSymbolProvider(this._lang, this);
-        monaco.languages.registerDocumentHighlightProvider(this._lang, this);
-        monaco.languages.registerDefinitionProvider(this._lang, this);
-        monaco.languages.registerImplementationProvider(this._lang, this);
-        monaco.languages.registerDocumentRangeFormattingEditProvider(
-            this._lang, this);
-        monaco.languages.registerOnTypeFormattingEditProvider(this._lang, this);
-        monaco.languages.registerCompletionItemProvider(this._lang, this);
+        this._initialized = true;
+        this._disposables.push(monaco.languages.registerReferenceProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerRenameProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerSignatureHelpProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerHoverProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerDocumentSymbolProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerDocumentHighlightProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerDefinitionProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerImplementationProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerDocumentRangeFormattingEditProvider(
+            this._lang, this));
+        this._disposables.push(monaco.languages.registerOnTypeFormattingEditProvider(this._lang, this));
+        this._disposables.push(monaco.languages.registerCompletionItemProvider(this._lang, this));
     };
 
     TSClient.prototype.onOpen = function(model) {

@@ -24,6 +24,7 @@ EditBook.newEditor = function(ws) {
     }
 
     var onInit = initializeModule();
+    onInit.push(() => monaco.editor.setTheme('vs-dark'));
     onInit.push(() => mainEditor.init());
     onInit.push(() => subEditor.init());
     onInit.push((_, languageservice) => {
@@ -297,7 +298,6 @@ EditBookMonacoEditor.prototype.init = function() {
     this.editor = monaco.editor.create(this.elem);
     this.editor.addCommand(
         monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
-    this.editor.updateOptions({'theme': 'vs-dark'});
     this.editor.onDidFocusEditor(() => {
         notifyFocusChanged(this);
     });

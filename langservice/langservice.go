@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type LangService interface {
@@ -96,11 +97,7 @@ func (s *languageServerService) ReadMessage() ([]byte, error) {
 		}
 		return nil, err
 	}
-	if len(s.scanner.Bytes()) == 0 {
-		return nil, fmt.Errorf("no data available")
-	}
-	d := s.scanner.Bytes()
-	return d, nil
+	return s.scanner.Bytes(), nil
 }
 
 func (s *languageServerService) WriteMessage(msg []byte) error {
@@ -205,7 +202,11 @@ type tsServerService struct {
 
 func (s *tsServerService) ReadMessage() ([]byte, error) {
 	if !s.scanner.Scan() {
-		return nil, s.scanner.Err()
+		err := s.scanner.Err()
+		if err == nil {
+			err = io.EOF
+		}
+		return nil, err
 	}
 	d := s.scanner.Bytes()
 	return d, nil
@@ -235,7 +236,9 @@ func StartTSServer(lang string, config Config) (LangService, error) {
 type SendDataFunc func(lang string, data []byte) error
 
 type LangServices struct {
+	mu sync.Mutex
 	svcs     map[string]LangService
+
 	configs  map[string]Config
 	sendData SendDataFunc
 }
@@ -249,6 +252,8 @@ func NewLangServices(configs map[string]Config, sendData SendDataFunc) *LangServ
 }
 
 func (lss *LangServices) GetOrInitializeLangService(lang string) (svc LangService, err error) {
+	lss.mu.Lock()
+	defer lss.mu.Unlock()
 	if svc, ok := lss.svcs[lang]; ok {
 		return svc, nil
 	}
@@ -267,14 +272,19 @@ func (lss *LangServices) GetOrInitializeLangService(lang string) (svc LangServic
 	go func() {
 		for {
 			data, err := svc.ReadMessage()
-			if err == io.EOF {
+			if err != nil {
+				if err != io.EOF {
+					log.Printf("Error on reading from langserver: %v", err)
+				}
 				break
-			} else if err != nil {
-				log.Printf("Error on reading from langserver: %v", err)
-				continue
 			}
-			lss.sendData(lang, data)
+			if len(data) != 0 {
+				lss.sendData(lang, data)
+			}
 		}
+		lss.mu.Lock()
+		delete(lss.svcs, lang)
+		lss.mu.Unlock()
 	}()
 	lss.svcs[lang] = svc
 	return svc, nil

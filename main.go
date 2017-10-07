@@ -158,11 +158,9 @@ func wsSendReceive(cmdsch chan string, conn *websocket.Conn) {
 					return
 				}
 			case ls:
-				log.Printf("lang service: %s", data)
 				data = data[1:]
 				if idx := bytes.IndexAny(data, "{["); idx > 0 {
 					langName := string(data[:idx])
-					log.Printf("lang service: %s", langName)
 					svc, err := langServices.GetOrInitializeLangService(langName)
 					if err != nil {
 						log.Printf("lang service error: %v", err)

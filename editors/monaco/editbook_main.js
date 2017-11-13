@@ -25,8 +25,11 @@ EditBook.newEditor = function(ws) {
 
     var onInit = initializeModule();
     onInit.push(() => monaco.editor.setTheme('vs-dark'));
-    onInit.push(() => mainEditor.init());
-    onInit.push(() => subEditor.init());
+    onInit.push((_, __, EditorService) => {
+        let esvc = new EditorService();
+        mainEditor.init(esvc);
+        subEditor.init(esvc);
+    });
     onInit.push((_, languageservice) => {
         languageServiceNS = languageservice;
         connectToLanguageService(ws, languageservice);
@@ -93,9 +96,11 @@ EditBook.newEditor = function(ws) {
 
 function initializeModule() {
     function onAmdEnabled() {
-        require.config({paths:
-            {vs: '/editor/vs', languageservice: '/editor/languageservice'}});
-        require(['vs/editor/editor.main', 'languageservice'], function() {
+        require.config({paths: {
+            vs: '/editor/vs',
+            languageservice: '/editor/languageservice',
+            editorservice: '/editor/editorservice'}});
+        require(['vs/editor/editor.main', 'languageservice', 'editorservice'], function() {
             var args = Array.prototype.slice.call(arguments, 0);
             onInit.forEach(function(callback) {
                 callback.apply(null, args);
@@ -139,6 +144,7 @@ function initializeLanguageServices(ws, languageservice, callback) {
 }
 
 function notifyFocusChanged(editor) {
+    console.log(editor);
     gCurrent = editor;
     gMenu.setPath(editor.path);
 }
@@ -294,8 +300,9 @@ EditBookMonacoEditor.prototype.save = function() {
     });
 };
 
-EditBookMonacoEditor.prototype.init = function() {
-    this.editor = monaco.editor.create(this.elem);
+EditBookMonacoEditor.prototype.init = function(esvc) {
+    this.editor = monaco.editor.create(this.elem, null, {editorService: esvc});
+    esvc.add(this);
     this.editor.addCommand(
         monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, ()=>this.save());
     this.editor.onDidFocusEditor(() => {

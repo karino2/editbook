@@ -4,6 +4,9 @@
 
 EditBook is micro http server and web based editor.
 
+This project is obsolete. Now official VS Code support remote development.
+Keep this repository only for record purpose.
+
 
 # install
 
